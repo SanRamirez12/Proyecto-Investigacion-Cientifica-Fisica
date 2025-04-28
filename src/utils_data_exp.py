@@ -1,10 +1,12 @@
 #import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 import os
 from astropy.io import fits
+from sklearn.preprocessing import StandardScaler
 
 #Preseleccion de columnas (No incluye flujos por ahora.)
-def select_Columnas(headers):
+def select_columnas(headers):
     #Los nombres de columnas estan guardados en Ttypes del 1 al 79 dentro de headers, por tanto:
     ttypes = []
     for i in range(1, 80):  # Desde TTYPE1 hasta TTYPE79
@@ -25,24 +27,24 @@ def select_Columnas(headers):
     return columnas_seleccionadas
 
 #Leer el archivo y transformarlo como un data frame
-def leerFITS(nombre_archivo):
+def leer_fits(nombre_archivo):
     #Se designa la ruta actual de este archivo:
     directorio_actual = os.path.dirname(os.path.abspath(__file__))
     # Construye la ruta relativa al archivo .fits ubicado en ../data/raw/
     file_path = os.path.join(directorio_actual, '..', 'data', 'raw', nombre_archivo)
 
     #Se asgina un feature del catalogo, solo para leer
-    datosFits_4FGL = fits.open(name=file_path, mode="readonly")
+    datos_fits_4fgl = fits.open(name=file_path, mode="readonly")
     #print(datosFits_4FGL.info()) #Tipos de datos
     
     #Se accede al segundo elemento (índice 1) del archivo FITS: LAT_Point_Source_Catalog
-    catalogo_fuentes = datosFits_4FGL[1].data
+    catalogo_fuentes = datos_fits_4fgl[1].data
     
     #Visualizar info de headers:
-    headers = datosFits_4FGL[1].header
+    headers = datos_fits_4fgl[1].header
     
     #Se seleccionan las colmunas respectivas
-    columnas_seleccionadas = select_Columnas(headers)
+    columnas_seleccionadas = select_columnas(headers)
     
     #Se crea un diccionario donde se filtran los datos por las columnas seleccionadas
     datos = {col: catalogo_fuentes[col] for col in columnas_seleccionadas}
@@ -77,4 +79,70 @@ def limpiar_labels_clases(df):
             df.at[index, 'CLASS1'] = 'NoAGN'
     
     return df
+
+#Verificacion de porcentajes de NaNs por columna.
+def estudio_nans(df):
+    #Cuenta la cantidad de NaNs del dataframe usando .isna(bool) y luego los suma
+    total_nans = df.isna().sum()      
+    #Promedia los True o False de NaNs y saca un porcentaje con respecto a los 7195 datos      
+    porcentaje = df.isna().mean() * 100 
+    
+    #Se crea un dataframe con los valores que queremos de NaNs
+    df_resumen_nans = pd.DataFrame({
+        'Cantidad de NaNs:': total_nans,
+        'Porcentaje de NaNs:': porcentaje
+    })
+    
+    #Muestra solo las columnas con NaNs:
+    df_resumen_nans = df_resumen_nans[df_resumen_nans['Cantidad de NaNs:'] > 0]  
+    #Ordena las columnas de mayor a menor:
+    df_resumen_nans = df_resumen_nans.sort_values('Porcentaje de NaNs:', ascending=False) 
+    
+    return df_resumen_nans
+    
+#Indexar la columna del SpectrumType (LabelEncoding)
+def encode_spectrum_type(df):
+    #Se limpian los strings: quitando espacios y poniendolo en minuscula. 
+    df['SpectrumType'] = df['SpectrumType'].str.strip().str.lower()
+    
+    #Se define un diccionario  para indexar los spectrum types en dicha columna
+    espectros_indexados = {'powerlaw': 0, 'logparabola': 1, 'plsuperexpcutoff': 2 }
+    
+    #Mapea la columna con el diccionario de acuerdo a cada tipo de espectro
+    df['SpectrumType'] = df['SpectrumType'].map(espectros_indexados)
+    return df
+
+#Normalizar los valores de los features:
+def normalizar_features(df):
+    #Se crea un objeto de StandardScaler que normaliza los datos (media 0, desviación estándar 1)
+    obj_scaler = StandardScaler() #Usa Z-Score para normalizar
+    
+    #Se obtienen todas las columnas numéricas del DataFrame, filtra por tipo de dato y despues las convierte en lista
+    cols_numericas = df.select_dtypes(include=[np.number]).columns.tolist()
+    
+    #Se elimina 'SpectrumType' de las columnas numéricas, porque no queremos normalizarla
+    cols_numericas.remove('SpectrumType')  
+    
+    #Se normalizan solo las columnas numéricas seleccionadas
+    df[cols_numericas] = obj_scaler.fit_transform(df[cols_numericas])
+    return df
+    
+
+def count_infinities(df):
+    # Verificar si hay valores infinitos (positivos o negativos)
+    inf_counts = (df.isin([np.inf, -np.inf])).sum()
+    
+    # Devolver el conteo de infinitos por columna
+    return inf_counts
+
+
+
+
+
+
+
+
+
+
+
 

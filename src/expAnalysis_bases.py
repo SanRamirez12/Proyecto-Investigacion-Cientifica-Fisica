@@ -6,11 +6,13 @@ from astropy.table import Table
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.impute import SimpleImputer
 
+#Listo
 def read_fits_to_dataframe(fits_path):
     table = Table.read(fits_path)
     df = table.to_pandas()
     return df
 
+#Listo
 def select_features(df):
     selected_columns = [
         'Flux1000', 'Energy_Flux100', 'SpectrumType', 'PL_Flux_Density',
@@ -23,6 +25,7 @@ def select_features(df):
     df_selected = df[selected_columns].copy()
     return df_selected
 
+#Listo
 def clean_class_labels(df):
     def classify_label(label):
         if pd.isna(label):
@@ -41,16 +44,19 @@ def clean_class_labels(df):
     df['CLASS1'] = df['CLASS1'].apply(classify_label)
     return df
 
+#Listo
 def encode_spectrum_type(df):
     spectrum_mapping = {'PowerLaw': 0, 'LogParabola': 1, 'PLSuperExpCutoff': 2}
     df['SpectrumType'] = df['SpectrumType'].map(spectrum_mapping)
     return df
+
 
 def impute_missing_values(df):
     imputer = SimpleImputer(strategy='mean')
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     df[numeric_cols] = imputer.fit_transform(df[numeric_cols])
     return df
+
 
 def normalize_features(df):
     scaler = StandardScaler()

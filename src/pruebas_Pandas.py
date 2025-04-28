@@ -11,6 +11,7 @@ dataFrame_inicial = utde.leerFITS('gll_psc_v35.fit') #No incluye flujos por ahor
 dataFrame_labeleado =utde.limpiar_labels_clases(dataFrame_inicial)
 print(dataFrame_labeleado.describe())
 
+#Holi
 
 '''
 Comandos para dataframes:
