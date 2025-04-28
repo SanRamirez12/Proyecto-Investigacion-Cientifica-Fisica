@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import utils_data_exp as utde
 
 
@@ -7,7 +9,12 @@ dataFrame_inicial = utde.leerFITS('gll_psc_v35.fit') #No incluye flujos por ahor
 
 #Se corrige el DataFrame inicial agregando nuevos lables: 
 dataFrame_labeleado =utde.limpiar_labels_clases(dataFrame_inicial)
-print(dataFrame_labeleado)
+print(dataFrame_labeleado.describe())
 
 
+'''
+Comandos para dataframes:
+df.describe() :counts, mean, std, min, max,y %
+df.info() : data tyoes, memoria, indices, columna
 
+'''
