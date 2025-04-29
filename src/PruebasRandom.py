@@ -2,6 +2,7 @@ from astropy.io import fits
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
+import numpy as np
 
 #Funcion que me lee el archivo actual 
 def read_RawFile(nombre_archivo):
@@ -47,3 +48,10 @@ def definirHistogramaClases(nombre_archivo, n_feature, nombre_asignado):
     # for i in range(1):
     #     print(f'Fuente {i+1}: Flux_Band: {len(booba1[i])}, \n nuFnu_Band:  {len(booba2[i])},\n Flux_History: {len(booba3[i])}')
     # return 
+
+def count_infinities(df): #
+    # Verificar si hay valores infinitos (positivos o negativos)
+    inf_counts = (df.isin([np.inf, -np.inf])).sum()
+    
+    # Devolver el conteo de infinitos por columna
+    return inf_counts

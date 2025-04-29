@@ -4,6 +4,9 @@ import numpy as np
 import os
 from astropy.io import fits
 from sklearn.preprocessing import StandardScaler
+import seaborn as sns
+import matplotlib.pyplot as plt
+import time 
 
 #Preseleccion de columnas (No incluye flujos por ahora.)
 def select_columnas(headers):
@@ -15,8 +18,9 @@ def select_columnas(headers):
             ttypes.append(headers[nombre_columna])
     #print(ttypes) #Tipos de columnas
     #A partir de los nombres de columnas, los vemos y elegimos de los 79 los que nos parecen:
-    # Los uncertanties de las energias no los tomamos.
-    # Las columnas 'Flux_Band', 'nuFnu_Band', 'Flux_History' son arrays de 8, 8 y 14 valores respectivamentes:
+    #Los uncertanties de las energias no los tomamos.
+    #Las columnas 'Flux_Band', 'nuFnu_Band', 'Flux_History' son arrays de 8, 8 y 14 valores respectivamentes:
+    #Las columnas 'Flux_Peak', 'Variability_Index', 'Frac_Variability' tienen nulls identificados como np.inf (5370,1,1 respectivamew)
     columnas_seleccionadas = [
         'Flux1000', 'Energy_Flux100', 'SpectrumType', 'PL_Flux_Density',
         'PL_Index', 'LP_Flux_Density', 'LP_Index', 'LP_beta', 'LP_SigCurv',
@@ -111,8 +115,32 @@ def encode_spectrum_type(df):
     #Mapea la columna con el diccionario de acuerdo a cada tipo de espectro
     df['SpectrumType'] = df['SpectrumType'].map(espectros_indexados)
     return df
+    
+#Aparecen como nulls en fluxpeak(5370),Variability_Index y Frac_Variability 
+#(1y 1) dentro del fits pero pandas los detecta como infs
+def inf_a_nan(df): 
+    #Se toma la columna las otras dos del dataframe y se remplazan por nans
+    cols_x_arreglar = ['Flux_Peak', 'Variability_Index', 'Frac_Variability']
+    #Usamos el .replace para cambiar los infs por nans
+    df[cols_x_arreglar] = df[cols_x_arreglar].replace([np.inf, -np.inf], np.nan)
+    return df
 
-#Normalizar los valores de los features:
+#Elimina columnas que tienen un porcentaje de NaNs mayor al threshold.
+def elimina_cols_alto_nans(df, threshold):
+    #Se determina el porcetanje de nans de cada columna
+    porcentaje_nans = df.isna().mean()
+    
+    #Encuentra las columnas que tienen más NaNs que el threshold, y las lista
+    cols_a_eliminar = porcentaje_nans[porcentaje_nans > threshold].index.tolist()
+    
+    #Crea un nuevo dataframe que elimina las columnas listadas
+    df = df.drop(columns=cols_a_eliminar)
+    
+    #Mensaje que me indique cuales se eliminaron
+    print(f"Columnas eliminadas por alto porcentaje de NaNs (> {threshold*100}%): {cols_a_eliminar}")
+    return df
+
+#Normalizar los valores de los features: (lo dejo para despues)
 def normalizar_features(df):
     #Se crea un objeto de StandardScaler que normaliza los datos (media 0, desviación estándar 1)
     obj_scaler = StandardScaler() #Usa Z-Score para normalizar
@@ -126,22 +154,56 @@ def normalizar_features(df):
     #Se normalizan solo las columnas numéricas seleccionadas
     df[cols_numericas] = obj_scaler.fit_transform(df[cols_numericas])
     return df
+
+
+#Matriz de correlacion en un mapa calor:
+def corr_matrix_heatmap(df):
     
-
-def count_infinities(df):
-    # Verificar si hay valores infinitos (positivos o negativos)
-    inf_counts = (df.isin([np.inf, -np.inf])).sum()
+    #Se copia el DataFrame para no modificar el original
+    df_corr = df.copy()
     
-    # Devolver el conteo de infinitos por columna
-    return inf_counts
+    #Se eliminan columnas categóricas
+    cols_excluidas = ['CLASS1', 'SpectrumType']
+    df_corr = df_corr.drop(columns=[col for col in cols_excluidas if col in df_corr.columns])
+        
+    #Se crea una figura para guardar el heatmap
+    plt.figure(figsize=(12,10))
+    
+    #Se crea la matriz de correlacion
+    corr_matrix = df_corr.corr()
+    
+    #Mapa de calor para ver la matriz de correlacion
+    sns.heatmap(corr_matrix, cmap='coolwarm', annot=True, fmt=".1f", linewidth=.5, 
+                cbar=True, xticklabels='auto', yticklabels='auto', )
+    #Se agrega un nombre
+    plt.title('Mapa de calor de correlación de Pearson entre características')
+    #Se muestra el ploteo
+    plt.show()    
+    
+#Metodo para hacer el pairplot:
+def pairplot_features(df):
+    #Se mide el tiempo inicial del proceso:
+    t_inicial = time.time()
+    #Se copia el DataFrame para no modificar el original
+    df_nuevo = df.copy()
+    #Se eliminan columnas categóricas
+    cols_excluidas = ['CLASS1']
+    df_nuevo = df_nuevo.drop(columns=[col for col in cols_excluidas if col in df_nuevo.columns])
+    #Selecciona los nombres de las columnas. 
+    features = df_nuevo.columns.tolist()
+    #Se elige con cual feature coloreamos el pairplot:
+    label_col='CLASS1'
+    #Se realiza el pairplot, coloreandolo con los label de CLASS1
+    sns.pairplot(df[features + [label_col]], hue=label_col)
 
-
-
-
-
-
-
-
+    #Se muestra el pairplot
+    plt.show()
+    #Se mide el tiempo final del proceso:
+    t_final = time.time()
+    
+    #Se realiza la duracion y se muestra en consola
+    duracion = t_final - t_inicial
+    print(f"Tiempo de ejecución del pairplot: {duracion:.2f} segundos")
 
 
 
