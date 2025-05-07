@@ -15,12 +15,12 @@ df_spectype_encode = utde.encode_spectrum_type(df_labeleado)
 
 #Corregimos los infinitos por valores Nan en el dataframe
 df_infs_a_nans = utde.inf_a_nan(df_spectype_encode)
-#print(df_infs_a_nans)
+# print(df_infs_a_nans)
 
 
 #Dataframe sobre los valores faltantes (NaNs): 
-# df_resumen_nans = utde.estudio_nans(df_infs_a_nans)
-# print(df_resumen_nans)
+#df_resumen_nans = utde.estudio_nans(df_infs_a_nans)
+#print(df_resumen_nans)
 #Determinamos por ahora que queremos quitar los rows con features con muchos nans (Los Peaks)
 #Por ahora ignoramos la imputacion de datos.
 
@@ -29,7 +29,7 @@ df_sin_nans = utde.elimina_cols_alto_nans(df_infs_a_nans, 0.1)
 
 
 df_actual = df_sin_nans
-#print(df_actual) #Quedan 18 parametros
+print(df_actual) #Quedan 18 parametros
 
 #Se plotea el heatmap con la matriz de correlacion bajo el metodo de Pearson
 #utde.corr_matrix_heatmap(df_actual)
