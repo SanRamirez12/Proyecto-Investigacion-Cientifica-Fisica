@@ -13,26 +13,42 @@ df_labeleado =utde.limpiar_labels_clases(df_inicial)
 df_spectype_encode = utde.encode_spectrum_type(df_labeleado)
 #print(df_spectype_encode)
 
-#Corregimos los infinitos por valores Nan en el dataframe
-#df_infs_a_nans = utde.inf_a_nan(df_spectype_encode)
-# print(df_infs_a_nans)
+#Convertimos infinitos a nans:
+df_infs_a_nans = utde.inf_a_nan(df_spectype_encode)
+
+# #Dataframe sobre los valores faltantes (NaNs): 
+# df_resumen_nans = utde.estudio_nans(df_spectype_encode)
+# print(df_resumen_nans)
+
+# #Filas con Nans y su tipologia:
+# df_filas_nans = utde.filas_con_nans(df_infs_a_nans)
+# print(df_filas_nans)
+
+#Borramos las 4 filas con nans 
+df_limpio = utde.eliminar_filas_nans(df_infs_a_nans)
+
+#Obtenemos un resumen de los datos que tenemos por clase y modelo espectral:
+tabla_informativa = utde.resumen_fuentes_y_spectro(df_limpio)
+# print(tabla_informativa)
+
+#Normalizamos las columnas del dataframe para que entren bien en la ANN
+df_norm = utde.normalizar_features(df_limpio)
+
+print('###############################################################')
+#Quedan 16 parametros: X con shape(7191,15) y Y los de CLASS1
+df_actual = df_norm
+print(df_actual) 
 
 
-#Dataframe sobre los valores faltantes (NaNs): 
-#df_resumen_nans = utde.estudio_nans(df_infs_a_nans)
-#print(df_resumen_nans)
-#Determinamos por ahora que queremos quitar los rows con features con muchos nans (Los Peaks)
-#Por ahora ignoramos la imputacion de datos.
 
-#Decidimos elimnar a las columnas con un threshold mayor al 10% (Basicamente los 3 peaks)
-df_sin_nans = utde.elimina_cols_alto_nans(df_spectype_encode, 0.1)
+############## PLOTS ######################
+# #Se plotea el heatmap con la matriz de correlacion bajo el metodo de Pearson
+# utde.corr_matrix_heatmap(df_actual)
 
+# #Se realiza el pairplot;
+# utde.pairplot_features(df_actual)
 
-df_actual = df_sin_nans
-print(df_actual) #Quedan 16 parametros: X con shape(7195,15) y Y los de CLASS1
+############# Exp Archivos ##########################################
+print('###############################################################')
 
-#Se plotea el heatmap con la matriz de correlacion bajo el metodo de Pearson
-#utde.corr_matrix_heatmap(df_actual)
-
-#Se realiza el pairplot;
-utde.pairplot_features(df_actual)
+utde.exportar_df_variantes(df_actual)

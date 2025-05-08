@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 import numpy as np
+from sklearn.impute import SimpleImputer
 
 #Funcion que me lee el archivo actual 
 def read_RawFile(nombre_archivo):
@@ -55,3 +56,33 @@ def count_infinities(df): #
     
     # Devolver el conteo de infinitos por columna
     return inf_counts
+
+
+#Imputar valores faltantes para cols con %NaNs < 1%:
+def imputar_nans(df):
+    #Generamos una copia del dataframe
+    df_copy = df.copy()
+    
+    #Se excluyen las columnas categoricas para la imputacion
+    cols_excluir = ['SpectrumType', 'CLASS1']
+    df_excluir = df_copy[cols_excluir]
+    df_numericas = df_copy.drop(columns=cols_excluir)
+
+    #Se imputan los Nans faltantes con el SimpleImputer(strategy) de sklearn
+    #strategy: 'constant' con valor 0 que indica que no aplica, no un numero normal
+    imputer = SimpleImputer(strategy='constant', fill_value=0)
+    df_imputado = pd.DataFrame(
+        #aplica el imputer a las columnas numericas
+        imputer.fit_transform(df_numericas), 
+        #se mantenga el mismo nombre de columnas
+        columns=df_numericas.columns, 
+        #conserva el indice de las columnas originales
+        index=df_numericas.index )
+
+    #Se reconstruye el DataFrame con todas las columnas
+    df_final = pd.concat([df_imputado, df_excluir], axis=1)
+
+    #Se realiza una verificacion para ver que no haya mas Nans
+    assert df_final.isnull().sum().sum() == 0, "Todavía hay NaNs en el DataFrame."
+
+    return df_final

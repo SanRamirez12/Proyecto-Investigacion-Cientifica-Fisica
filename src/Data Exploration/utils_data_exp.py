@@ -8,6 +8,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import time 
 
+
 #Preseleccion de columnas (No incluye flujos por ahora.)
 def select_columnas(headers):
     #Los nombres de columnas estan guardados en Ttypes del 1 al 79 dentro de headers, por tanto:
@@ -81,7 +82,6 @@ def leer_fits(nombre_archivo):
     return df
 
 
-
 #Arreglo de labels en CLASS1 para trabajar con mas orden:
 def limpiar_labels_clases(df):
    #Ciclo que se aplicará a cada valor de la columna CLASS1
@@ -140,12 +140,31 @@ def encode_spectrum_type(df):
     #Mapea la columna con el diccionario de acuerdo a cada tipo de espectro
     df['SpectrumType'] = df['SpectrumType'].map(espectros_indexados)
     return df
-    
+
+#Metodo para contar infinitos en una columna del df
+def contar_inf(df): #
+    #Cuenta los valores infinitos por columna
+    inf_counts = (df == np.inf).sum()
+    neg_inf_counts = (df == -np.inf).sum()
+
+    #Se obtiene el total de infinitos por columna
+    total_inf = inf_counts + neg_inf_counts
+
+    #Se filtran las columnas donde hay al menos un infinito
+    total_inf = total_inf[total_inf > 0]
+
+    #Devuelve un df
+    resumen = pd.DataFrame({
+        'Cantidad de infinitos': total_inf
+    }).sort_values('Cantidad de infinitos', ascending=False)
+
+    return resumen
+
 #Aparecen como nulls en fluxpeak(5370),Variability_Index y Frac_Variability 
 #(1y 1) dentro del fits pero pandas los detecta como infs
 def inf_a_nan(df): 
     #Se toma la columna las otras dos del dataframe y se remplazan por nans
-    cols_x_arreglar = ['Flux_Peak', 'Variability_Index', 'Frac_Variability']
+    cols_x_arreglar = ['Variability_Index', 'Frac_Variability']
     #Usamos el .replace para cambiar los infs por nans
     df[cols_x_arreglar] = df[cols_x_arreglar].replace([np.inf, -np.inf], np.nan)
     return df
@@ -165,21 +184,61 @@ def elimina_cols_alto_nans(df, threshold):
     print(f"Columnas eliminadas por alto porcentaje de NaNs (> {threshold*100}%): {cols_a_eliminar}")
     return df
 
-#Normalizar los valores de los features: (lo dejo para despues)
+#Metodo para ver los tipos de Nans por fila:
+def filas_con_nans(df):
+
+    #Selecionamos las filas con al menos un NaN y las ponemos en un df
+    df_nans = df[df.isna().any(axis=1)].copy()
+    
+    #Se identifican las columnas con NaNs para cada fila (como lista)
+    cols_con_nan = df_nans.isna().apply(lambda row: row[row].index.tolist(), axis=1)
+    
+    # Construir DataFrame resumen
+    df_resumen = pd.DataFrame({
+        'Columnas_con_NaNs': cols_con_nan,
+        'SpectrumType': df_nans['SpectrumType'],
+        'CLASS1': df_nans['CLASS1']
+    }, index=df_nans.index)
+    
+    return df_resumen
+
+#Elimnamos filas con nans(como son 4 no me importan mucho)
+def eliminar_filas_nans(df):
+    #Elimina todas las filas que contienen al menos un NaN en cualquier columna.
+    df_limpio = df.dropna()
+    return df_limpio
+
+#Metodo para ver cantidad de fuentes por tipo y spectrumtype:
+def resumen_fuentes_y_spectro(df):
+    #Se obtiene una tabla conteo cruzado de pandas: SpectrumType vs CLASS1
+    tabla_cruzada = pd.crosstab(df['CLASS1'], df['SpectrumType'])
+
+    #Se cuentan las fuentes por CLASS1
+    conteo_total = df['CLASS1'].value_counts().sort_index()
+
+    #Se inserta una columna con el total al inicio del DataFrame
+    tabla_cruzada.insert(0, 'Total_fuentes', conteo_total)
+
+    return tabla_cruzada
+
+#Normalizar los valores de los features: 
 def normalizar_features(df):
+    #generamos una copia
+    df_copia = df.copy()
     #Se crea un objeto de StandardScaler que normaliza los datos (media 0, desviación estándar 1)
     obj_scaler = StandardScaler() #Usa Z-Score para normalizar
     
     #Se obtienen todas las columnas numéricas del DataFrame, filtra por tipo de dato y despues las convierte en lista
-    cols_numericas = df.select_dtypes(include=[np.number]).columns.tolist()
+    cols_numericas = df_copia.select_dtypes(include=[np.number]).columns.tolist()
     
     #Se elimina 'SpectrumType' de las columnas numéricas, porque no queremos normalizarla
-    cols_numericas.remove('SpectrumType')  
+    for col_excluir in ['SpectrumType']:
+        if col_excluir in cols_numericas:
+            cols_numericas.remove(col_excluir) 
     
     #Se normalizan solo las columnas numéricas seleccionadas
-    df[cols_numericas] = obj_scaler.fit_transform(df[cols_numericas])
-    return df
-
+    df_copia[cols_numericas] = obj_scaler.fit_transform(df_copia[cols_numericas])
+    return df_copia
 
 #Matriz de correlacion en un mapa calor:
 def corr_matrix_heatmap(df):
@@ -230,6 +289,33 @@ def pairplot_features(df):
     duracion = t_final - t_inicial
     print(f"Tiempo de ejecución del pairplot: {duracion:.2f} segundos")
 
+#Metodo para exportar el dataframe final como csv y parquet:
+def exportar_df_variantes(df):
+    #Ubicamos el punto donde queremos que se exporte en nuestro directorioÑ
+    directorio_actual = os.path.dirname(os.path.abspath(__file__))
+    carpeta_salida = os.path.join(directorio_actual, '..', '..', 'data', 'post preliminary analysis')
+    
+    #Se crea una carpeta de salida si no existe.
+    os.makedirs(carpeta_salida, exist_ok=True)
+    
+    nombre_base='df_final'
+    
+    #Hacemos copias en .csv por si quiero verlas yo y .parquet par que sean menos pesados para el modelo.
+    
+    #Se realiza una copia fiel del DataFrame completo
+    df.to_csv(f"{carpeta_salida}/{nombre_base}_completo.csv", index=False)
+    df.to_parquet(f"{carpeta_salida}/{nombre_base}_completo.parquet", index=False)
 
+    #Se exportan archivos solo con lasfilas con label 'UncAss' (fuentes no asosciadas) para el deployment
+    df_uncass = df[df['CLASS1'] == 'UncAss']
+    df_uncass.to_csv(f"{carpeta_salida}/{nombre_base}_solo_UncAss.csv", index=False)
+    df_uncass.to_parquet(f"{carpeta_salida}/{nombre_base}_solo_UncAss.parquet", index=False)
+
+    #Se exporta un archivo con todas las demás clases, excepto 'UncAss', para train, cv y test con el modelo
+    df_no_uncass = df[df['CLASS1'] != 'UncAss']
+    df_no_uncass.to_csv(f"{carpeta_salida}/{nombre_base}_sin_UncAss.csv", index=False)
+    df_no_uncass.to_parquet(f"{carpeta_salida}/{nombre_base}_sin_UncAss.parquet", index=False)
+
+    print("Exportación completada con éxito.")
 
 
