@@ -14,7 +14,7 @@ df_spectype_encode = utde.encode_spectrum_type(df_labeleado)
 #print(df_spectype_encode)
 
 #Corregimos los infinitos por valores Nan en el dataframe
-df_infs_a_nans = utde.inf_a_nan(df_spectype_encode)
+#df_infs_a_nans = utde.inf_a_nan(df_spectype_encode)
 # print(df_infs_a_nans)
 
 
@@ -25,14 +25,14 @@ df_infs_a_nans = utde.inf_a_nan(df_spectype_encode)
 #Por ahora ignoramos la imputacion de datos.
 
 #Decidimos elimnar a las columnas con un threshold mayor al 10% (Basicamente los 3 peaks)
-df_sin_nans = utde.elimina_cols_alto_nans(df_infs_a_nans, 0.1)
+df_sin_nans = utde.elimina_cols_alto_nans(df_spectype_encode, 0.1)
 
 
 df_actual = df_sin_nans
-print(df_actual) #Quedan 18 parametros
+print(df_actual) #Quedan 16 parametros: X con shape(7195,15) y Y los de CLASS1
 
 #Se plotea el heatmap con la matriz de correlacion bajo el metodo de Pearson
 #utde.corr_matrix_heatmap(df_actual)
 
 #Se realiza el pairplot;
-#utde.pairplot_features(df_actual)
+utde.pairplot_features(df_actual)

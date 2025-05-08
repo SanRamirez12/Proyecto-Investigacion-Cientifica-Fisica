@@ -17,17 +17,33 @@ def select_columnas(headers):
         if nombre_columna in headers:
             ttypes.append(headers[nombre_columna])
     #print(ttypes) #Tipos de columnas
-    #A partir de los nombres de columnas, los vemos y elegimos de los 79 los que nos parecen:
-    #Los uncertanties de las energias no los tomamos.
-    #Las columnas 'Flux_Band', 'nuFnu_Band', 'Flux_History' son arrays de 8, 8 y 14 valores respectivamentes:
-    #Las columnas 'Flux_Peak', 'Variability_Index', 'Frac_Variability' tienen nulls identificados como np.inf (5370,1,1 respectivamew)
+    '''
+ A partir de los nombres de columnas, los vemos y elegimos de los 79 los que nos parecen:
+Los uncertanties de las energias no los tomamos.
+Las columnas 'Flux_Band', 'nuFnu_Band', 'Flux_History' son arrays de 8, 8 y 14 valores respectivamentes:
+Las columnas 'Flux_Peak', 'Variability_Index', 'Frac_Variability' tienen nulls identificados como np.inf (5370,1,1 respectivamew)
+De acuerdo con la explicacion fisica detras de la eliminacion de'Flux1000', 'Energy_Flux100' se debe a que
+estas muestran flujos de energia dependientes de la intensidad y a la que se midieron y su distancia
+y estos valores no son tan representativos como el espectro final y los indices de dichos espectros
+por ende para este estudio mejor los eliminamos. 
+Las columnas 'LP_EPeak' y 'PLEC_EPeak' tienen muchos NaNs y no nos sirven para el analisis
+    '''
+    #Lista de columnas seleccionadas:
     columnas_seleccionadas = [
-        'Flux1000', 'Energy_Flux100', 'SpectrumType', 'PL_Flux_Density',
-        'PL_Index', 'LP_Flux_Density', 'LP_Index', 'LP_beta', 'LP_SigCurv',
-        'LP_EPeak', 'PLEC_Flux_Density', 'PLEC_IndexS', 'PLEC_ExpfactorS',
-        'PLEC_Exp_Index', 'PLEC_SigCurv', 'PLEC_EPeak', 'Npred',
-        'Variability_Index', 'Frac_Variability', 'Flux_Peak', 'CLASS1'
+        'SpectrumType', 'PL_Flux_Density', 'PL_Index', 'LP_Flux_Density', 
+        'LP_Index', 'LP_beta', 'LP_SigCurv','PLEC_Flux_Density', 
+        'PLEC_IndexS', 'PLEC_ExpfactorS', 'PLEC_Exp_Index', 'PLEC_SigCurv', 
+        'Npred','Variability_Index', 'Frac_Variability', 'CLASS1'
         ]
+    #catidad_select = len(columnas_seleccionadas)
+    #Lista de columnas eliminadas:
+    # columnas_eliminadas = [
+    #     'Flux_Band', 'nuFnu_Band', 'Flux_History', 
+    #     'Flux_Peak', 'LP_EPeak', 'PLEC_EPeak', 'Flux1000', 'Energy_Flux100'
+    #     ]
+    #cantidad_elim= len(columnas_eliminadas)
+    
+    #print(f"Seleccionamos una catidad de {catidad_select} columnas y eliminamos {cantidad_elim} columnas")
     return columnas_seleccionadas
 
 #Leer el archivo y transformarlo como un data frame
@@ -35,27 +51,36 @@ def leer_fits(nombre_archivo):
     #Se designa la ruta actual de este archivo:
     directorio_actual = os.path.dirname(os.path.abspath(__file__))
     # Construye la ruta relativa al archivo .fits ubicado en ../data/raw/
-    file_path = os.path.join(directorio_actual, '..', 'data', 'raw', nombre_archivo)
+    file_path = os.path.join(directorio_actual, '..', '..', 'data', 'raw', nombre_archivo)
 
-    #Se asgina un feature del catalogo, solo para leer
-    datos_fits_4fgl = fits.open(name=file_path, mode="readonly")
-    #print(datosFits_4FGL.info()) #Tipos de datos
-    
-    #Se accede al segundo elemento (índice 1) del archivo FITS: LAT_Point_Source_Catalog
-    catalogo_fuentes = datos_fits_4fgl[1].data
-    
-    #Visualizar info de headers:
-    headers = datos_fits_4fgl[1].header
-    
-    #Se seleccionan las colmunas respectivas
-    columnas_seleccionadas = select_columnas(headers)
-    
-    #Se crea un diccionario donde se filtran los datos por las columnas seleccionadas
-    datos = {col: catalogo_fuentes[col] for col in columnas_seleccionadas}
-    #Se crea el dataframe usando pandas.
-    df = pd.DataFrame(datos)
+    #Se lee el archivo:
+    with fits.open(name=file_path, mode="readonly") as datos_fits_4fgl:
+        #print(datosFits_4FGL.info()) #Tipos de datos
+        
+        #Se accede al segundo elemento (índice 1) del archivo FITS: LAT_Point_Source_Catalog
+        catalogo_fuentes = datos_fits_4fgl[1].data
+        headers = datos_fits_4fgl[1].header #Visualizar info de headers
+        
+        #Se seleccionan las colmunas respectivas
+        columnas_seleccionadas = select_columnas(headers)
+        
+        #Se crea un diccionario donde se filtran los datos por las columnas seleccionadas
+        datos = {}
+        for col in columnas_seleccionadas:
+            #Se especifica que solo queremos datos de las cols seleccionadas
+            col_data = catalogo_fuentes[col]
+            #Se evita el error: Big-endian buffer not supported on little-endian compiler
+            if col_data.dtype.byteorder == '>':  
+                col_data = col_data.byteswap().newbyteorder()
+            datos[col] = col_data
+        
+        #Se crea el dataframe usando pandas.
+        df = pd.DataFrame(datos)
+            
     #print(df)
     return df
+
+
 
 #Arreglo de labels en CLASS1 para trabajar con mas orden:
 def limpiar_labels_clases(df):
