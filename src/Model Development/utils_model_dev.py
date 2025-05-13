@@ -1,7 +1,9 @@
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.preprocessing import LabelEncoder
 import os
-
+from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
 #Ocupamos una funcion que nos lea archivos de datos .parquet o .csv y nos devuelva 
 # separademente X e Y, y codifica la columna CLASS1.
 
@@ -48,3 +50,31 @@ def cargar_dataset(nombre_archivo, encoding='label', return_encoder=False):
     if return_encoder:
         return X, Y, encoder
     return X, Y
+
+#Metodo que me plotea la matriz de confusion para ver los valores positivos y negativos/ falsos y verdaderos
+def matriz_confusion(y_true, y_pred, labbels_clases):
+    
+    conf_matrix = confusion_matrix(y_true, y_pred)
+    plt.figure(figsize=(8, 6))
+    #Realiza un heatmap de seaborn
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',
+                xticklabels=labbels_clases,
+                yticklabels=labbels_clases)
+    plt.xlabel('Clases Predichas')
+    plt.ylabel('Clases Verdaders')
+    plt.title('Matriz de Confusión')
+    plt.tight_layout()
+    plt.show()
+    
+#Metodo para graficar las curvas de aprendizaje.
+def learning_curves(history):
+    plt.figure(figsize=(10, 4))
+    plt.plot(history.history['loss'], label='Pérdida del training set')
+    plt.plot(history.history['val_loss'], label='Pérdida del validation set')
+    plt.xlabel('Epochs(Épocas)')
+    plt.ylabel('Loss (Pérdida)')
+    plt.title('Curvas de aprendizaje')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
