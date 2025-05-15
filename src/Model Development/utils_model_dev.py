@@ -71,7 +71,7 @@ def learning_curves(history):
     plt.figure(figsize=(10, 4))
     plt.plot(history.history['loss'], label='Pérdida del training set')
     plt.plot(history.history['val_loss'], label='Pérdida del validation set')
-    plt.xlabel('Epochs(Épocas)')
+    plt.xlabel('Epochs (Épocas)')
     plt.ylabel('Loss (Pérdida)')
     plt.title('Curvas de aprendizaje')
     plt.legend()

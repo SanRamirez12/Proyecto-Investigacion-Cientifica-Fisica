@@ -37,25 +37,25 @@ model.compile(optimizer=Adam(learning_rate=0.001 ),
               metrics=['accuracy'])
 
 #Se entrena el modelo:
-print('Entrenando .......')
+print('\nEntrenando .......\n')
 #Se establece un tiempo inicial de entrenamiento
 t_inicio_entreno = time.time()
 #Se hace un Callback de con parada anticipada de 10 valores en caso de que el error no mejore
 #Tecnica de regularizacion para evitar overfitting
 early_stop = EarlyStopping(monitor='val_loss', patience=30, restore_best_weights=True)
 
-#Se entrena el modelo con 200 epocas
+#Se entrena el modelo con 500 epocas
 history = model.fit(X_train, Y_train,
                     validation_data=(X_cv, Y_cv),
-                    epochs=200,
-                    batch_size=32,
+                    epochs=500,
+                    batch_size=64,
                     callbacks=[early_stop],
                     verbose=1)
 #Se establece un tiempo final de entrenamiento
 t_fin_entreno = time.time()
 #Tiempo total:
 diff_tiempo =t_fin_entreno - t_inicio_entreno
-print(f'Fin del entrenamiento. Duracion: {diff_tiempo:.2f}s')
+print(f'\nFin del entrenamiento. Duracion: {diff_tiempo:.2f}s\n')
 
 #Printeamos las learning curves
 umd.learning_curves(history)
@@ -65,14 +65,14 @@ umd.learning_curves(history)
 
 #Se evalua el test set de acuerdo con el modelo
 test_loss, test_acc = model.evaluate(X_test, Y_test)
-print(f'\nPrecisión del Test_set: {test_acc:.4f}')
+print(f'\nPrecisión del Test_set: {test_acc:.4f}\n')
 
 #Se realiza un reporte de métricas
 y_pred_probs = model.predict(X_test)
 y_pred = np.argmax(y_pred_probs, axis=1)
 
 #Se printea el reporte de classificacion de sklearn para ver las metricas y como funciona el modelo
-print("\nReporte de Clasificación:")
+print("\n\nReporte de Clasificación:")
 print(classification_report(Y_test, y_pred, target_names=encoder.classes_))
 
 #Printeamos la matriz de confusion:
