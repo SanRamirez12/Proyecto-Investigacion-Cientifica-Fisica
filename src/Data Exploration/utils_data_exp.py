@@ -210,16 +210,32 @@ def eliminar_filas_nans(df):
 
 #Metodo para ver cantidad de fuentes por tipo y spectrumtype:
 def resumen_fuentes_y_spectro(df):
+    #Se mapean los valores numéricos a nombres legibles (si aún están como 0,1,2)
+    tipo_spectro = {0: 'PowerLaw', 1: 'LogParabola', 2: 'PLSuperExpCutoff'}
+    df['SpectrumTypeNombre'] = df['SpectrumType'].map(tipo_spectro)
+    
     #Se obtiene una tabla conteo cruzado de pandas: SpectrumType vs CLASS1
-    tabla_cruzada = pd.crosstab(df['CLASS1'], df['SpectrumType'])
+    tabla_cruzada = pd.crosstab(df['CLASS1'], df['SpectrumTypeNombre'])
 
     #Se cuentan las fuentes por CLASS1
     conteo_total = df['CLASS1'].value_counts().sort_index()
 
     #Se inserta una columna con el total al inicio del DataFrame
     tabla_cruzada.insert(0, 'Total_fuentes', conteo_total)
+    
+    # Crear gráfico de barras apiladas
+    tabla_cruzada.plot(kind='bar', stacked=False, figsize=(10, 6), colormap='viridis')
+    
+    # Estética del gráfico
+    plt.title('Distribución de tipo de espectro por clase ')
+    plt.xlabel('Clase (CLASS1)')
+    plt.ylabel('Cantidad de fuentes')
+    plt.xticks(rotation=45)
+    plt.legend(title='SpectrumType')
+    plt.tight_layout()
+    plt.show()
 
-    return tabla_cruzada
+
 
 #Normalizar los valores de los features: 
 def normalizar_features(df):

@@ -27,19 +27,15 @@ df_infs_a_nans = utde.inf_a_nan(df_spectype_encode)
 #Borramos las 4 filas con nans 
 df_limpio = utde.eliminar_filas_nans(df_infs_a_nans)
 
-#Obtenemos un resumen de los datos que tenemos por clase y modelo espectral:
-tabla_informativa = utde.resumen_fuentes_y_spectro(df_limpio)
 # print(tabla_informativa)
 
-#Normalizamos las columnas del dataframe para que entren bien en la ANN
-df_norm = utde.normalizar_features(df_limpio)
 
 print('###############################################################')
 #Quedan 16 parametros: X con shape(7191,15) y Y los de CLASS1
-df_actual = df_norm
+df_actual = df_limpio
 print(df_actual) 
 
-
+#utde.resumen_fuentes_y_spectro(df_actual)
 
 ############## PLOTS ######################
 # #Se plotea el heatmap con la matriz de correlacion bajo el metodo de Pearson
@@ -51,4 +47,4 @@ print(df_actual)
 ############# Exp Archivos ##########################################
 print('###############################################################')
 
-utde.exportar_df_variantes(df_actual)
+#utde.exportar_df_variantes(df_actual)

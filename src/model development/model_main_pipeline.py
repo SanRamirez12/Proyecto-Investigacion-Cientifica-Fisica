@@ -16,7 +16,7 @@ X, Y, encoder = umd.cargar_dataset('df_final_sin_UncAss.parquet', encoding='labe
 #Dividimos 80% a Arrays temporales train/cv y 20% test
 X_temp, X_test, Y_temp, Y_test = train_test_split(
     X, Y, test_size=0.2, stratify=Y, random_state=42)
-#Del 80% anterior, 25% para 
+#Del 80% anterior, 25% para cv y 75% para training
 X_train, X_cv, Y_train, Y_cv = train_test_split(
     X_temp, Y_temp, test_size=0.25, stratify=Y_temp, random_state=42)
 
