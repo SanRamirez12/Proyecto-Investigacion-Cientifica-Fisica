@@ -24,11 +24,12 @@ X_train, X_cv, Y_train, Y_cv = train_test_split(
 
 #Arquitectura de red con un modelo simple(sin regularizacion y solo un hidden layer):
 model = Sequential([
-    Dense(30, input_shape=(X.shape[1],), activation='relu', name='hidden_layer_1'),
+    Dense(35, input_shape=(X.shape[1],), activation='relu', name='hidden_layer_1'),
+    Dense(18, activation='relu', name='hidden_layer_2'),
     Dense(5, activation='softmax', name='output_layer')  
 ])
 #Resumen del modelo
-# model.summary()
+model.summary()
 
 #Se compila el modelo
 #Optimizador: Adam, Perdida: sparse_categorical_crossentropy
@@ -47,7 +48,7 @@ early_stop = EarlyStopping(monitor='val_loss', patience=30, restore_best_weights
 #Se entrena el modelo con 500 epocas
 history = model.fit(X_train, Y_train,
                     validation_data=(X_cv, Y_cv),
-                    epochs=500,
+                    epochs=200,
                     batch_size=64,
                     callbacks=[early_stop],
                     verbose=1)

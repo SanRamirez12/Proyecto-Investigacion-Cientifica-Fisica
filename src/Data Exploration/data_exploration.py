@@ -47,4 +47,4 @@ print(df_actual)
 ############# Exp Archivos ##########################################
 print('###############################################################')
 
-#utde.exportar_df_variantes(df_actual)
+utde.exportar_df_variantes(df_actual)

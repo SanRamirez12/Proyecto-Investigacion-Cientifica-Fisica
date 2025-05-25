@@ -134,11 +134,20 @@ def encode_spectrum_type(df):
     #Se limpian los strings: quitando espacios y poniendolo en minuscula. 
     df['SpectrumType'] = df['SpectrumType'].str.strip().str.lower()
     
-    #Se define un diccionario  para indexar los spectrum types en dicha columna
-    espectros_indexados = {'powerlaw': 0, 'logparabola': 1, 'plsuperexpcutoff': 2 }
+    # Se hace one-hot encoding manualmente con pandas
+    dummies = pd.get_dummies(df['SpectrumType'], prefix='spectrum')
     
-    #Mapea la columna con el diccionario de acuerdo a cada tipo de espectro
-    df['SpectrumType'] = df['SpectrumType'].map(espectros_indexados)
+    #Se asegura que estén todas las columnas esperadas (por si falta alguna categoría en el dataset actual)
+    for col in ['spectrum_powerlaw', 'spectrum_logparabola', 'spectrum_plsuperexpcutoff']:
+        if col not in dummies.columns:
+            dummies[col] = 0  # columna de ceros si no apareció esa categoría
+    
+    #Se convierten  booleanos a enteros explícitamente
+    dummies = dummies.astype(int)
+    
+    #Se concatenan las columnas one-hot al dataframe original
+    df =pd.concat([df.drop(columns=['SpectrumType']), dummies], axis=1)
+    
     return df
 
 #Metodo para contar infinitos en una columna del df
