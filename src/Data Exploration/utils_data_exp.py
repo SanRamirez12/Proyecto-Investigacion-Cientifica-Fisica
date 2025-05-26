@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import os
 from astropy.io import fits
-from sklearn.preprocessing import StandardScaler
 import seaborn as sns
 import matplotlib.pyplot as plt
 import time 
@@ -244,26 +243,6 @@ def resumen_fuentes_y_spectro(df):
     plt.tight_layout()
     plt.show()
 
-
-
-#Normalizar los valores de los features: 
-def normalizar_features(df):
-    #generamos una copia
-    df_copia = df.copy()
-    #Se crea un objeto de StandardScaler que normaliza los datos (media 0, desviación estándar 1)
-    obj_scaler = StandardScaler() #Usa Z-Score para normalizar
-    
-    #Se obtienen todas las columnas numéricas del DataFrame, filtra por tipo de dato y despues las convierte en lista
-    cols_numericas = df_copia.select_dtypes(include=[np.number]).columns.tolist()
-    
-    #Se elimina 'SpectrumType' de las columnas numéricas, porque no queremos normalizarla
-    for col_excluir in ['SpectrumType']:
-        if col_excluir in cols_numericas:
-            cols_numericas.remove(col_excluir) 
-    
-    #Se normalizan solo las columnas numéricas seleccionadas
-    df_copia[cols_numericas] = obj_scaler.fit_transform(df_copia[cols_numericas])
-    return df_copia
 
 #Matriz de correlacion en un mapa calor:
 def corr_matrix_heatmap(df):

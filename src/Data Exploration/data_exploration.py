@@ -27,8 +27,6 @@ df_infs_a_nans = utde.inf_a_nan(df_spectype_encode)
 #Borramos las 4 filas con nans 
 df_limpio = utde.eliminar_filas_nans(df_infs_a_nans)
 
-# print(tabla_informativa)
-
 
 print('###############################################################')
 #Quedan 16 parametros: X con shape(7191,15) y Y los de CLASS1
@@ -47,4 +45,4 @@ print(df_actual)
 ############# Exp Archivos ##########################################
 print('###############################################################')
 
-utde.exportar_df_variantes(df_actual)
+# utde.exportar_df_variantes(df_actual)
