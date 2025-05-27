@@ -67,16 +67,11 @@ def graf_importancia_hyperparametros(study):
     plt.show()
 
 #Metodo para cargar studies (va a ser utilizado en los notebooks)
-def cargar_study_desde_ruta(ruta_archivo):
-    print(f"Intentando cargar archivo desde: {ruta_archivo}")
-
-    if not os.path.exists(ruta_archivo):
-        print("Archivo no encontrado. Verifica la ruta proporcionada.")
-        return None
+def cargar_study_desde_pkl(ruta_archivo):
 
     try:
         study = joblib.load(ruta_archivo)
-        print("Estudio cargado correctamente.")
+        print(f"Estudio cargado correctamente desde: {ruta_archivo}")
         return study
     except Exception as e:
         print(f"Error al cargar el estudio: {e}")

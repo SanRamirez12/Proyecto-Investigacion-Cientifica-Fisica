@@ -11,8 +11,8 @@ from sklearn.utils.class_weight import compute_class_weight
 
 #Metodos de Tensorflow
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.optimizers import Adam, RMSprop
 from tensorflow.keras.callbacks import EarlyStopping
 
 
@@ -62,25 +62,35 @@ for fold_idx, (train_idx, val_idx) in enumerate(kfold.split(X_temp_final, Y_temp
     Y_val_fold = Y_temp[val_idx]
 
     #Se realiza un calculo de los pesos de clase para este fold
+    factor_pesos = 1.0629191164261773
     pesos_de_clase = compute_class_weight(class_weight='balanced',
                                          classes=np.unique(Y_train_fold),
                                          y=Y_train_fold)
-    diccionario_de_pesos = dict(zip(np.unique(Y_train_fold), pesos_de_clase))
-
+    diccionario_de_pesos = dict(zip(np.unique(Y_train_fold), pesos_de_clase*factor_pesos))
+    
+    #Hiperparametros de arquitectura
+    tasa_abandono = 0.04904795055114761 
+    hidden_act_funct = 'gelu'
+    
     #Se crea la arquitectura del modelo
     model = Sequential([
-        Dense(50, input_shape=(X.shape[1],), activation='relu', name='hidden_layer_1'),
-        #Dense(32, activation='relu', name='hidden_layer_2'),
+        Dense(128, input_shape=(X.shape[1],), activation=hidden_act_funct),
+        Dropout(tasa_abandono),
+        Dense(64, activation=hidden_act_funct),
+        Dropout(tasa_abandono),
         Dense(5, activation='softmax', name='output_layer')
     ])
     
     #Se compila el modelo
-    model.compile(optimizer=Adam(learning_rate=0.001),
+    tasa_aprendizaje = 0.002560550650639202
+    optimizador = RMSprop(learning_rate=tasa_aprendizaje)
+    
+    model.compile(optimizer=optimizador,
                   loss='sparse_categorical_crossentropy',
                   metrics=['accuracy'])
     
-    #Resumen del modelo
-    model.summary()
+    # #Resumen del modelo
+    # model.summary()
     
     #Se hace un Callback de con parada anticipada en caso de que el error de validacion no mejore
     parada_temprana = EarlyStopping(monitor='val_loss', patience=50, restore_best_weights=True)
@@ -96,7 +106,7 @@ for fold_idx, (train_idx, val_idx) in enumerate(kfold.split(X_temp_final, Y_temp
     history = model.fit(X_train_fold, Y_train_fold,
               validation_data=(X_val_fold, Y_val_fold),
               epochs=1000,  #Epocas de entrenamiento
-              batch_size=64, #Tamano del lote 
+              batch_size=125, #Tamano del lote 
               callbacks=[PlotLossesKeras(), parada_temprana], #Metemos la parada temprana y grafico a tiempo real del Learning curve por fold
               class_weight=diccionario_de_pesos, #Pesos para las clases
               verbose=1)
