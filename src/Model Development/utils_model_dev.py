@@ -86,18 +86,6 @@ def learning_curves(histories):
     plt.tight_layout()
     plt.show()
 
-#Escalamos datasets para mejor tratamiento en red neuronal
-def escalar_datasets(X_temp, X_test, cols_a_escalar):
-    #Se convierte el df a array NumPy (manteniendo el orden de columnas)
-    X_temp_escalado = X_temp.copy()
-    X_test_escalado = X_test.copy()
-    scaler = StandardScaler() #Difinimos el escalador como un tipo StandarScaler
-    X_temp_escalado[cols_a_escalar] = scaler.fit_transform(X_temp_escalado[cols_a_escalar]) #Se ajusta y escala X del training/vsalidation
-    X_test_escalado[cols_a_escalar] = scaler.transform(X_test[cols_a_escalar]) #Se escala el test set
-     #.values cambia df a narray, y tipo float32 tiene mejor rendimiento que el float64
-    X_temp_final = X_temp_escalado.values.astype(np.float32) 
-    X_test_final = X_test_escalado.values.astype(np.float32) 
-    return X_temp_final, X_test_final
 
 #Metodo de reporte general de metricas: 
 def reporte_general_metricas(fold_accuracies, fold_classification_reports, encoder):
@@ -146,9 +134,56 @@ def varianza_entre_folds(fold_classification_reports):
     plt.tight_layout()
     plt.show()
 
+#Metodo para mostrar los pesos por fold:
+def mostrar_pesos_fold(pesos_por_fold, encoder):
+    print("\nResumen de pesos de clase por fold:")
+    
+    #Se inicilizala estructura para acumular pesos por clase
+    acumulador = {clase: [] for clase in encoder.transform(encoder.classes_)}
+    
+    for i, pesos in enumerate(pesos_por_fold, 1):
+        print(f"\nFold #{i}:")
+        for clase_idx, peso in pesos.items():
+            clase_nombre = encoder.inverse_transform([clase_idx])[0]
+            print(f"  Clase {clase_idx} ({clase_nombre}): {peso:.4f}")
+            acumulador[clase_idx].append(peso)
+    
+    print("\nPromedio de pesos por clase a lo largo de los folds:")
+    for clase_idx in sorted(acumulador.keys()):
+        clase_nombre = encoder.inverse_transform([clase_idx])[0]
+        promedio = np.mean(acumulador[clase_idx])
+        print(f"  Clase {clase_idx} ({clase_nombre}): {promedio:.4f}")
 
+#Metodo para graficar pesos por clase
+def graficar_pesos_por_fold(pesos_por_fold, encoder):
 
+    clases_idx = sorted(encoder.transform(encoder.classes_))
 
+    #Se crea una estructura por clase
+    pesos_por_clase = {clase_idx: [] for clase_idx in clases_idx}
+    
+    for fold_pesos in pesos_por_fold:
+        for clase_idx in clases_idx:
+            peso = fold_pesos.get(clase_idx, np.nan)  # Evita errores si falta alguna clase
+            pesos_por_clase[clase_idx].append(peso)
+
+    #Se grafica
+    plt.figure(figsize=(10, 6))
+    for clase_idx in clases_idx:
+        pesos = pesos_por_clase[clase_idx]
+        nombre = encoder.inverse_transform([clase_idx])[0]
+        promedio = np.mean(pesos)
+        plt.plot(range(1, len(pesos) + 1), pesos, marker='o', label=f'{nombre}')
+        plt.hlines(promedio, 1, len(pesos), linestyles='dashed', colors='gray', alpha=0.5)
+
+    plt.xlabel('Fold')
+    plt.ylabel('Peso de clase')
+    plt.title('Pesos de clase por fold (con promedio)')
+    plt.xticks(range(1, len(pesos_por_fold) + 1))
+    plt.legend(title='Clases')
+    plt.grid(True, linestyle='--', alpha=0.4)
+    plt.tight_layout()
+    plt.show()
 
 
 

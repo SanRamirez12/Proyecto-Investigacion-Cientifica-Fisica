@@ -6,7 +6,6 @@ import utils_model_dev as umd
 import utils_hyperparameter_opt as uho
 import time
 import numpy as np
-import optuna
 
 #Metodos de Skelearn
 from sklearn.model_selection import train_test_split    
@@ -18,6 +17,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 
 #Metodos Optuna:
+import optuna
 from optuna.integration import TFKerasPruningCallback
 
 
