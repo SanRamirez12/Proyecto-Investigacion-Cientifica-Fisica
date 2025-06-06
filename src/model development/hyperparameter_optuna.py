@@ -11,6 +11,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split    
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import f1_score
+from sklearn.preprocessing import StandardScaler
 
 #Metodos Tensorflow
 from tensorflow import keras
@@ -30,18 +31,9 @@ X, Y, encoder = umd.cargar_dataset('df_final_sin_UncAss.parquet', encoding='labe
 X = X.copy()
 Y = Y.astype(np.int32)
 
-#Separamos el test set (20%) del training/validations sets (80%)
-X_temp, X_test, Y_temp, Y_test = train_test_split(X, Y, test_size=0.2, stratify=Y, random_state=42)
-
 #Se identifican las columnas a no escalar (spectrum types) y las demas se escalan 
 cols_no_escaladas = [col for col in X.columns if col.startswith("spectrum_")]
 cols_a_escalar = [col for col in X.columns if col not in cols_no_escaladas]
-
-#Se escalan los datasets
-X_temp_final, X_test_final = umd.escalar_datasets(X_temp, X_test, cols_a_escalar)
-
-# ==================== SUBMUESTREO PARA OPTIMIZACIÓN ====================
-X_sub, _, Y_sub, _ = train_test_split(X_temp_final, Y_temp, train_size=0.5, stratify=Y_temp, random_state=42)
 
 
 # ==================== OPTUNA OBJECTIVE ====================
@@ -49,37 +41,38 @@ X_sub, _, Y_sub, _ = train_test_split(X_temp_final, Y_temp, train_size=0.5, stra
 def objective(trial):
     
     # Hiperparámetros de numero decapas
-    num_layers = trial.suggest_int('num_capas_ocultas', 1, 3) 
+    num_layers = trial.suggest_int('num_capas_ocultas', 1, 5) 
     
     #Hiperparametros de compilacion
     optimizer_name = trial.suggest_categorical('optimizador', [
         'SGD', 'SGD_momentum', 'SGD_NAG', 'RMSprop', 'Adagrad', 'Adadelta', 'Adam', 'AdamW', 'Nadam'
     ])
-    learning_rate = trial.suggest_float('tasa_aprendizaje', 1e-4, 1e-2, log=True)
-    momentum = trial.suggest_float('momentum', 0.0, 0.9) if 'momentum' in optimizer_name else 0.0
+    learning_rate = trial.suggest_float('tasa_aprendizaje', 1e-5, 1e-3, log=True, step=1e-5)
+    momentum = trial.suggest_float('momentum', 0.0, 0.9, step=0.05) if 'momentum' in optimizer_name else 0.0
     batch_size = trial.suggest_int('tamaño_lote', 32, 128)
     
-    # Pesos por clase como hiperparámetros nombrados según el nombre real de la clase
-    base_weights = compute_class_weight(class_weight='balanced', classes=np.unique(Y_sub), y=Y_sub)
+    #Pesos por clase como hiperparámetros nombrados según el nombre real de la clase
+    class_weights = {
+    i: trial.suggest_float(f'peso_{encoder.classes_[i]}', 0.01, 10.0)
+    for i in range(len(encoder.classes_))}
     
-    # Genera los factores de ponderación como hiperparámetros nombrados con los nombres de clase reales
-    class_weight_factors = {}
-    for i, class_name in enumerate(encoder.classes_):
-        param_name = f'peso_de_{class_name}'
-        class_weight_factors[i] = trial.suggest_float(param_name, 0.1, 15.0)
+    # ===== Split train/val manual (80/20) =====
+    X_train, X_val, y_train, y_val = train_test_split(X, Y, test_size=0.2, stratify=Y, random_state=42)
     
-    #Se multiplican los factores por los pesos base
-    class_weights = {i: base_weights[i] * class_weight_factors[i] for i in range(len(encoder.classes_))}
-    
+    # ===== Escalado (fit solo en train, transform en ambos) =====
+    scaler = StandardScaler()
+    X_train_scaled = X_train.copy()
+    X_val_scaled = X_val.copy()
+    X_train_scaled[cols_a_escalar] = scaler.fit_transform(X_train[cols_a_escalar])
+    X_val_scaled[cols_a_escalar] = scaler.transform(X_val[cols_a_escalar])
 
     #Se plantea el modelo de ANN tipo MLP:
     model = keras.Sequential()
-    model.add(layers.Input(shape=(X_sub.shape[1],)))
-    
+    model.add(layers.Input(shape=(X_train_scaled.shape[1],)))
     for i in range(num_layers):
         units = trial.suggest_int(f'unidades_capa_{i}', 30, 130)
         activation = trial.suggest_categorical(f'activación_capa_{i}', ['relu', 'tanh', 'selu', 'elu', 'gelu'])
-        dropout_rate = trial.suggest_float(f'tasa_abandono_capa_{i}', 0.0, 0.5)
+        dropout_rate = trial.suggest_float(f'tasa_abandono_capa_{i}', 0.0, 0.5, step=0.05)
         model.add(layers.Dense(units, activation=activation))
         model.add(layers.Dropout(dropout_rate))
 
@@ -93,12 +86,12 @@ def objective(trial):
         metrics=['accuracy']
     )
 
-    #Se entena el modelo para un trial especifico con hiperparametros especificos
+    # ===== Entrenamiento del modelo para un trial especifico con hiperparametros especificos=====
     t_inicio = time.time() #tiempo inical por dicho trial
     history = model.fit(
-        X_sub, Y_sub,
-        validation_split=0.2,
-        epochs=200,
+        X_train_scaled, y_train,
+        validation_data=(X_val_scaled, y_val),
+        epochs=500,
         batch_size=batch_size,
         verbose=0,
         callbacks=[
@@ -109,14 +102,13 @@ def objective(trial):
     )
     t_final = time.time()
     duracion = t_final- t_inicio
-    minutos = int(duracion // 60)
-    segundos = int(duracion % 60)
-    print(f"\Duración del trial:\n {minutos} minutos y {segundos} segundos\n")
-    #Proceso de evaluación interna para ese modelo de ese trial:
-    y_pred = model.predict(X_sub)
+    print(f"\Duración del trial:\n {int(duracion // 60)} minutos y {int(duracion % 60)} segundos\n")
+    
+    # ===== Evaluación final sobre validation ara ese modelo de ese trial ===== 
+    y_pred = model.predict(X_val_scaled)
     y_pred_labels = np.argmax(y_pred, axis=1)
     #Muestra el f1 score apartir de 
-    f1 = f1_score(Y_sub, y_pred_labels, average='weighted')
+    f1 = f1_score(y_val, y_pred_labels, average='weighted') #Puede ser: 'weighted', 'macro' y  'micro'
     return f1
 
 # ==================== EJECUCIÓN DEL ESTUDIO ====================
@@ -125,7 +117,7 @@ t0 = time.time()
 #Se crea el estudio con optimizacion bayesiana de Optuna
 study = optuna.create_study(
     direction='maximize', #Maximiza la funcion objetivo para encontrar el modelo con el mejor f1score
-    study_name='AGN_opt_inicial_prueba', #Nombre del estudio
+    study_name='Study1000trials_#1_F1weighted', #Nombre del estudio
     sampler=optuna.samplers.TPESampler(), #Tree-structured Parzen Estimator como estrategia de muestreo
     pruner=optuna.pruners.MedianPruner(n_warmup_steps=5)) #Permite interrumpir los trials que no prometen buenos resultados,
     #MedianPruner compara la métrica de validación con la mediana de otros trials en ese punto, 
@@ -143,7 +135,7 @@ print(f"\nDuración de ejecución del estudio:\n {minutos} minutos y {segundos} 
 
 # ==================== VISUALIZACIÓN Y GUARDADO ====================
 #Se guarda el estudio en la carpeta de hyperparameter studies:
-nombre_studie_salida = "optuna_agn_study_200trials_pesos_nombrados"
+nombre_studie_salida = "Study1000trials_#1_F1weighted"
 uho.guardar_estudio_optuna(study, nombre_studie_salida)
 
 #Describimos el mejor trial

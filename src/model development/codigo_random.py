@@ -20,3 +20,21 @@
 # # Reporte final
 # print("\n Reporte de Clasificación - Conjunto de Test")
 # print(classification_report(Y_test, y_test_pred, target_names=encoder.classes_))
+
+
+# #Separamos el test set (20%) del training/validations sets (80%)
+# X_temp, X_test, Y_temp, Y_test = train_test_split(X, Y, test_size=0.2, stratify=Y, random_state=42)
+# #Se escalan los datasets
+# X_temp_final, X_test_final = umd.escalar_datasets(X_temp, X_test, cols_a_escalar)
+
+# #Pesos por clase como hiperparámetros nombrados según el nombre real de la clase
+# base_weights = compute_class_weight(class_weight='balanced', classes=np.unique(Y), y=Y)
+    
+# #Genera los factores de ponderación como hiperparámetros nombrados con los nombres de clase reales
+# class_weight_factors = {}
+# for i, class_name in enumerate(encoder.classes_):
+#     param_name = f'peso_de_{class_name}'
+#     class_weight_factors[i] = trial.suggest_float(param_name, 0.1, 15.0)
+    
+# #Se multiplican los factores por los pesos base
+# class_weights = {i: base_weights[i] * class_weight_factors[i] for i in range(len(encoder.classes_))}
