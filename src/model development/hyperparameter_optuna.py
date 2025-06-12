@@ -53,8 +53,12 @@ def objective(trial):
     
     #Pesos por clase como hiperparámetros nombrados según el nombre real de la clase
     class_weights = {
-    i: trial.suggest_float(f'peso_{encoder.classes_[i]}', 0.01, 10.0)
-    for i in range(len(encoder.classes_))}
+       0: trial.suggest_float('peso_BCU', 0.5, 5.0),
+       1: trial.suggest_float('peso_BLL', 0.5, 5.0),
+       2: trial.suggest_float('peso_FSRQ', 0.5, 5.0),
+       3: trial.suggest_float('peso_NoAGN', 0.1, 2.0),
+       4: trial.suggest_float('peso_OtroAGN', 5.0, 25.0)
+       }
     
     # ===== Split train/val manual (80/20) =====
     X_train, X_val, y_train, y_val = train_test_split(X, Y, test_size=0.2, stratify=Y, random_state=42)
@@ -117,14 +121,14 @@ t0 = time.time()
 #Se crea el estudio con optimizacion bayesiana de Optuna
 study = optuna.create_study(
     direction='maximize', #Maximiza la funcion objetivo para encontrar el modelo con el mejor f1score
-    study_name='Study1000trials_#1_F1weighted', #Nombre del estudio
+    study_name='Study100trials_#1_F1weighted_suggWeights', #Nombre del estudio
     sampler=optuna.samplers.TPESampler(), #Tree-structured Parzen Estimator como estrategia de muestreo
     pruner=optuna.pruners.MedianPruner(n_warmup_steps=5)) #Permite interrumpir los trials que no prometen buenos resultados,
     #MedianPruner compara la métrica de validación con la mediana de otros trials en ese punto, 
     #n_warmup_steps=5: los primeros 5 pasos (épocas) de cada trial no se interrumpen
 
 #Se ejecuta el estudio
-study.optimize(objective, n_trials=200)
+study.optimize(objective, n_trials=100)
 
 #Tiempos de estudio:
 tf = time.time()
@@ -135,8 +139,9 @@ print(f"\nDuración de ejecución del estudio:\n {minutos} minutos y {segundos} 
 
 # ==================== VISUALIZACIÓN Y GUARDADO ====================
 #Se guarda el estudio en la carpeta de hyperparameter studies:
-nombre_studie_salida = "Study1000trials_#1_F1weighted"
+nombre_studie_salida = "Study100trials_#1_F1weighted_suggWeights"
 uho.guardar_estudio_optuna(study, nombre_studie_salida)
+uho.exportar_top_trials_a_csv(study, 10) 
 
 #Describimos el mejor trial
 print("\nMejor trial:")

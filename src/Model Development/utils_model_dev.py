@@ -4,10 +4,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import os
+import joblib
+from datetime import datetime
 
 #Metodos de Skelearn
-from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.metrics import confusion_matrix
+from sklearn.preprocessing import LabelEncoder, StandardScaler, label_binarize
+from sklearn.metrics import confusion_matrix, roc_curve, auc
 
 #Ocupamos una funcion que nos lea archivos de datos .parquet o .csv y nos devuelva 
 # separademente X e Y, y codifica la columna CLASS1.
@@ -85,7 +87,6 @@ def learning_curves(histories):
     plt.grid(True)
     plt.tight_layout()
     plt.show()
-
 
 #Metodo de reporte general de metricas: 
 def reporte_general_metricas(fold_accuracies, fold_classification_reports, encoder):
@@ -185,5 +186,58 @@ def graficar_pesos_por_fold(pesos_por_fold, encoder):
     plt.tight_layout()
     plt.show()
 
+#Metodo para graficar las curvas Roc y Auc de las clases
+def graficar_roc_auc_multiclase(y_true, y_pred_probs, encoder, title='Curvas ROC por clase'):
+    clases = encoder.classes_
+    n_classes = len(clases)
 
+    #Convierte las clases verdaderas en formato binario (uno contra el resto)
+    y_true_bin = label_binarize(y_true, classes=range(n_classes))
 
+    #Se definen Curvas ROC y AUC por clase
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+    
+    #Calcula la Tasa de Verdaderos Positivos (TPR) y Falsos Positivos (FPR)
+    for i in range(n_classes):
+        fpr[i], tpr[i], _ = roc_curve(y_true_bin[:, i], y_pred_probs[:, i])
+        roc_auc[i] = auc(fpr[i], tpr[i])
+
+    #Plotea una línea ROC por clase con su respectivo AUC: 
+    plt.figure(figsize=(10, 6))
+    for i in range(n_classes):
+        plt.plot(fpr[i], tpr[i], label=f'{clases[i]} (AUC = {roc_auc[i]:.2f})')
+    
+    #Se traza la diagonal de referencia (modelo aleatorio):
+    plt.plot([0, 1], [0, 1], 'k--', alpha=0.5)
+    plt.xlabel('Tasa de Falsos Positivos')
+    plt.ylabel('Tasa de Verdaderos Positivos')
+    plt.title(title)
+    plt.legend(loc='lower right')
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+#Guardar fold results en un .pkl
+def guardar_resultados_entrenamiento(resultados):
+    if not isinstance(resultados, (dict, list)):
+        raise ValueError("El objeto a guardar debe ser una lista o diccionario (ej. fold_results).")
+
+    #Se construye el nombre del archivo con timestamp
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S') #Year/month/day/hour/minute/second
+    nombre_archivo = f"fold_results_{timestamp}.pkl"
+
+    #Se define la ruta base del script
+    directorio_actual = os.path.dirname(os.path.abspath(__file__))
+
+    #Se define la carpeta de salida
+    carpeta_salida = os.path.join(directorio_actual, '..', '..', 'data', 'fold results training')
+    os.makedirs(carpeta_salida, exist_ok=True)
+
+    #Se define la ruta final
+    ruta_archivo = os.path.join(carpeta_salida, nombre_archivo)
+
+    # Guardar archivo
+    joblib.dump(resultados, ruta_archivo)
+    print(f"Resultados de entrenamiento guardados en: {ruta_archivo}")
