@@ -25,7 +25,7 @@ from optuna.integration import TFKerasPruningCallback
 # ==================== CARGA Y ESCALADO ====================
 
 #Empezamos leyendo los archivos. tomamos el datos sin fuentes no asociadas:
-X, Y, encoder = umd.cargar_dataset('df_final_sin_UncAss.parquet', encoding='label', return_encoder=True)
+X, Y, encoder = umd.cargar_dataset('df_final_solo_clases_definidas.parquet', encoding='label', return_encoder=True)
 
 #Se aseguran que son tipos correctos
 X = X.copy()
@@ -47,18 +47,21 @@ def objective(trial):
     optimizer_name = trial.suggest_categorical('optimizador', [
         'SGD', 'SGD_momentum', 'SGD_NAG', 'RMSprop', 'Adagrad', 'Adadelta', 'Adam', 'AdamW', 'Nadam'
     ])
-    learning_rate = trial.suggest_float('tasa_aprendizaje', 1e-5, 1e-3, log=True, step=1e-5)
+    learning_rate = trial.suggest_float('tasa_aprendizaje', 1e-5, 1e-3, log=True)
     momentum = trial.suggest_float('momentum', 0.0, 0.9, step=0.05) if 'momentum' in optimizer_name else 0.0
     batch_size = trial.suggest_int('tamaño_lote', 32, 128)
     
     #Pesos por clase como hiperparámetros nombrados según el nombre real de la clase
-    class_weights = {
-       0: trial.suggest_float('peso_BCU', 0.5, 5.0),
-       1: trial.suggest_float('peso_BLL', 0.5, 5.0),
-       2: trial.suggest_float('peso_FSRQ', 0.5, 5.0),
-       3: trial.suggest_float('peso_NoAGN', 0.1, 2.0),
-       4: trial.suggest_float('peso_OtroAGN', 5.0, 25.0)
-       }
+    class_weights = {}
+    for i, clase in enumerate(encoder.classes_):
+        if clase == 'BLL':
+            class_weights[i] = trial.suggest_float('peso_BLL', 0.5, 5.0)
+        elif clase == 'FSRQ':
+            class_weights[i] = trial.suggest_float('peso_FSRQ', 0.5, 5.0)
+        elif clase == 'NoAGN':
+            class_weights[i] = trial.suggest_float('peso_NoAGN', 0.5, 5.0)
+        elif clase == 'OtroAGN':
+            class_weights[i] = trial.suggest_float('peso_OtroAGN', 0.5, 25.0)
     
     # ===== Split train/val manual (80/20) =====
     X_train, X_val, y_train, y_val = train_test_split(X, Y, test_size=0.2, stratify=Y, random_state=42)
@@ -74,7 +77,7 @@ def objective(trial):
     model = keras.Sequential()
     model.add(layers.Input(shape=(X_train_scaled.shape[1],)))
     for i in range(num_layers):
-        units = trial.suggest_int(f'unidades_capa_{i}', 30, 130)
+        units = trial.suggest_int(f'unidades_capa_{i}', 50, 130)
         activation = trial.suggest_categorical(f'activación_capa_{i}', ['relu', 'tanh', 'selu', 'elu', 'gelu'])
         dropout_rate = trial.suggest_float(f'tasa_abandono_capa_{i}', 0.0, 0.5, step=0.05)
         model.add(layers.Dense(units, activation=activation))
@@ -121,14 +124,14 @@ t0 = time.time()
 #Se crea el estudio con optimizacion bayesiana de Optuna
 study = optuna.create_study(
     direction='maximize', #Maximiza la funcion objetivo para encontrar el modelo con el mejor f1score
-    study_name='Study100trials_#1_F1weighted_suggWeights', #Nombre del estudio
+    study_name='Study300trials_#2_F1weighted_suggWeights', #Nombre del estudio
     sampler=optuna.samplers.TPESampler(), #Tree-structured Parzen Estimator como estrategia de muestreo
     pruner=optuna.pruners.MedianPruner(n_warmup_steps=5)) #Permite interrumpir los trials que no prometen buenos resultados,
     #MedianPruner compara la métrica de validación con la mediana de otros trials en ese punto, 
     #n_warmup_steps=5: los primeros 5 pasos (épocas) de cada trial no se interrumpen
 
 #Se ejecuta el estudio
-study.optimize(objective, n_trials=100)
+study.optimize(objective, n_trials=300)
 
 #Tiempos de estudio:
 tf = time.time()
@@ -139,7 +142,7 @@ print(f"\nDuración de ejecución del estudio:\n {minutos} minutos y {segundos} 
 
 # ==================== VISUALIZACIÓN Y GUARDADO ====================
 #Se guarda el estudio en la carpeta de hyperparameter studies:
-nombre_studie_salida = "Study100trials_#1_F1weighted_suggWeights"
+nombre_studie_salida = "Study300trials_#2_F1weighted_suggWeights"
 uho.guardar_estudio_optuna(study, nombre_studie_salida)
 uho.exportar_top_trials_a_csv(study, 10) 
 
@@ -156,3 +159,4 @@ for key, value in trial.params.items():
 uho.graf_registros_optimizacion(study)
 uho.graf_importancia_hyperparametros(study)
 
+print(encoder.classes_)

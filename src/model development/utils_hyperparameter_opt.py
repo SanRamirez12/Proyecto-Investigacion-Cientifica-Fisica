@@ -84,11 +84,13 @@ def cargar_study_desde_ruta(ruta_archivo):
     
 # Exportar los mejores N trials a CSV
 def exportar_top_trials_a_csv(study, top_n=10):
+    #Crea la ruta de destino para los archivos:
     directorio_actual = os.path.dirname(os.path.abspath(__file__))
     carpeta_salida = os.path.join(directorio_actual, '..', '..', 'data', 'hyperparameter studies')
     carpeta_salida = os.path.abspath(carpeta_salida)
     os.makedirs(carpeta_salida, exist_ok=True)
 
+    #Busca cuales son los mejores trials
     top_trials = sorted([t for t in study.trials if t.value is not None], key=lambda t: t.value, reverse=True)[:top_n]
     registros = []
     for i, trial in enumerate(top_trials):
@@ -96,6 +98,7 @@ def exportar_top_trials_a_csv(study, top_n=10):
         fila.update(trial.params)
         registros.append(fila)
 
+    #Los convierte en un DF y luego a un csv
     df = pd.DataFrame(registros)
     ruta_csv = os.path.join(carpeta_salida, f"top_{top_n}_trials_{study.study_name}.csv")
     df.to_csv(ruta_csv, index=False)

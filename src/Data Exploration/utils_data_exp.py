@@ -129,7 +129,7 @@ def estudio_nans(df):
     return df_resumen_nans
     
 #Indexar la columna del SpectrumType (LabelEncoding)
-def encode_spectrum_type(df):
+def onehot_encode_spectrum_type(df):
     #Se limpian los strings: quitando espacios y poniendolo en minuscula. 
     df['SpectrumType'] = df['SpectrumType'].str.strip().str.lower()
     
@@ -295,31 +295,65 @@ def pairplot_features(df):
 
 #Metodo para exportar el dataframe final como csv y parquet:
 def exportar_df_variantes(df):
-    #Ubicamos el punto donde queremos que se exporte en nuestro directorioÑ
+    # Ubica el punto donde queremos que se exporte en nuestro directorio
     directorio_actual = os.path.dirname(os.path.abspath(__file__))
     carpeta_salida = os.path.join(directorio_actual, '..', '..', 'data', 'post preliminary analysis')
     
-    #Se crea una carpeta de salida si no existe.
+    # Crea la carpeta de salida si no existe
     os.makedirs(carpeta_salida, exist_ok=True)
     
-    nombre_base='df_final'
+    nombre_base = 'df_final'
     
-    #Hacemos copias en .csv por si quiero verlas yo y .parquet par que sean menos pesados para el modelo.
-    
-    #Se realiza una copia fiel del DataFrame completo
+    # Exporta el DataFrame completo
     df.to_csv(f"{carpeta_salida}/{nombre_base}_completo.csv", index=False)
     df.to_parquet(f"{carpeta_salida}/{nombre_base}_completo.parquet", index=False)
 
-    #Se exportan archivos solo con lasfilas con label 'UncAss' (fuentes no asosciadas) para el deployment
+    # Subconjuntos
     df_uncass = df[df['CLASS1'] == 'UncAss']
+    df_bcu = df[df['CLASS1'] == 'BCU']
+    df_no_uncass = df[df['CLASS1'] != 'UncAss']
+    df_clases_definidas = df[df['CLASS1'].isin(['BLL', 'FSRQ', 'NoAGN', 'OtroAGN'])]
+    df_sin_otroagn = df[df['CLASS1'].isin(['BLL', 'FSRQ', 'NoAGN'])]
+
+    # Exportar UncAss
     df_uncass.to_csv(f"{carpeta_salida}/{nombre_base}_solo_UncAss.csv", index=False)
     df_uncass.to_parquet(f"{carpeta_salida}/{nombre_base}_solo_UncAss.parquet", index=False)
 
-    #Se exporta un archivo con todas las demás clases, excepto 'UncAss', para train, cv y test con el modelo
-    df_no_uncass = df[df['CLASS1'] != 'UncAss']
+    # Exportar BCU
+    df_bcu.to_csv(f"{carpeta_salida}/{nombre_base}_solo_BCU.csv", index=False)
+    df_bcu.to_parquet(f"{carpeta_salida}/{nombre_base}_solo_BCU.parquet", index=False)
+
+    # Exportar sin UncAss
     df_no_uncass.to_csv(f"{carpeta_salida}/{nombre_base}_sin_UncAss.csv", index=False)
     df_no_uncass.to_parquet(f"{carpeta_salida}/{nombre_base}_sin_UncAss.parquet", index=False)
 
+    # Exportar BLL, FSRQ, NoAGN y OtroAGN
+    df_clases_definidas.to_csv(f"{carpeta_salida}/{nombre_base}_solo_clases_definidas.csv", index=False)
+    df_clases_definidas.to_parquet(f"{carpeta_salida}/{nombre_base}_solo_clases_definidas.parquet", index=False)
+
+    # Exportar BLL, FSRQ y NoAGN (sin OtroAGN)
+    df_sin_otroagn.to_csv(f"{carpeta_salida}/{nombre_base}_clases_definidas_sin_OtroAGN.csv", index=False)
+    df_sin_otroagn.to_parquet(f"{carpeta_salida}/{nombre_base}_clases_definidas_sin_OtroAGN.parquet", index=False)
+
     print("Exportación completada con éxito.")
 
+#Metodo para conocer cantidad de fuentes por clase:
+def resumen_cantidad_por_clase(df):
+    total = len(df)
 
+    conteo = df['CLASS1'].value_counts(dropna=False).reset_index()
+    conteo.columns = ['Clase', 'Cantidad']
+    conteo['Porcentaje'] =  (100 * conteo['Cantidad'] / total).round(2)
+
+    # Asegura que todas las clases relevantes estén presentes aunque tengan 0 ejemplos
+    clases_esperadas = ['BLL', 'FSRQ', 'BCU', 'OtroAGN', 'NoAGN', 'UncAss']
+    for clase in clases_esperadas:
+        if clase not in conteo['Clase'].values:
+            conteo = pd.concat(
+                [conteo, pd.DataFrame({'Clase': [clase], 'Cantidad': [0], 'Porcentaje': [0.0]})],
+                ignore_index=True
+            )
+
+    # Ordenar alfabéticamente para claridad
+    conteo = conteo.sort_values(by='Clase').reset_index(drop=True)
+    return conteo

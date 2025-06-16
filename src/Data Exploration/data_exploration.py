@@ -9,8 +9,12 @@ df_inicial = utde.leer_fits('gll_psc_v35.fit') #No incluye flujos por ahora.
 df_labeleado =utde.limpiar_labels_clases(df_inicial)
 #print(dataFrame_labeleado)
 
+# #Conocemos la cantidad de fuentes por clase:
+# resumen = utde.resumen_cantidad_por_clase(df_labeleado)
+# print(resumen)
+
 #Indexamos el spectrum type de las fuentes:
-df_spectype_encode = utde.encode_spectrum_type(df_labeleado)
+df_spectype_encode = utde.onehot_encode_spectrum_type(df_labeleado)
 #print(df_spectype_encode)
 
 #Convertimos infinitos a nans:
@@ -45,4 +49,4 @@ print(df_actual)
 ############# Exp Archivos ##########################################
 print('###############################################################')
 
-# utde.exportar_df_variantes(df_actual)
+#utde.exportar_df_variantes(df_actual)

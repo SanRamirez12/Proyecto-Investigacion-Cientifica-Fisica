@@ -19,7 +19,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 
 
 #Empezamos leyendo los archivos. tomamos el datos sin fuentes no asociadas:
-X, Y, encoder = umd.cargar_dataset('df_final_sin_UncAss.parquet', encoding='label', return_encoder=True)
+X, Y, encoder = umd.cargar_dataset('df_final_solo_clases_definidas.parquet', encoding='label', return_encoder=True)
 # print(f'Features: {X} y target Values: {Y}')
 
 #Se aseguran que son tipos correctos
