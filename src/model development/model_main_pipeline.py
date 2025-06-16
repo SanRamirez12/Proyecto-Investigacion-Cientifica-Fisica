@@ -13,10 +13,8 @@ from sklearn.preprocessing import StandardScaler, label_binarize
 #Metodos de Tensorflow
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.optimizers import Adam, RMSprop
+from tensorflow.keras.optimizers import AdamW, RMSprop
 from tensorflow.keras.callbacks import EarlyStopping
-
-
 
 #Empezamos leyendo los archivos. tomamos el datos sin fuentes no asociadas:
 X, Y, encoder = umd.cargar_dataset('df_final_solo_clases_definidas.parquet', encoding='label', return_encoder=True)
@@ -182,7 +180,8 @@ for clase in encoder.classes_:
     std = np.std(all_auc_scores[clase])
     print(f"{clase}: {media:.4f} ± {std:.4f}")
 
-
+#Resumen del modelo
+model.summary()
 
 
 

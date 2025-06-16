@@ -8,7 +8,7 @@ import joblib
 from datetime import datetime
 
 #Metodos de Skelearn
-from sklearn.preprocessing import LabelEncoder, StandardScaler, label_binarize
+from sklearn.preprocessing import LabelEncoder, label_binarize
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 
 #Ocupamos una funcion que nos lea archivos de datos .parquet o .csv y nos devuelva 

@@ -6,7 +6,6 @@ import utils_model_dev as umd
 import utils_hyperparameter_opt as uho
 import time
 import numpy as np
-import plotly.io as pio
 
 #Metodos de Skelearn
 from sklearn.model_selection import train_test_split    
@@ -20,10 +19,8 @@ from tensorflow.keras import layers
 #Metodos Optuna:
 import optuna
 from optuna.integration import TFKerasPruningCallback
-import optuna.visualization as vis
 
-
-# ==================== CARGA Y ESCALADO ====================
+# ==================== CARGA Y LECTURA ====================
 
 #Empezamos leyendo los archivos. tomamos el datos sin fuentes no asociadas:
 X, Y, encoder = umd.cargar_dataset('df_final_solo_clases_definidas.parquet', encoding='label', return_encoder=True)
@@ -158,21 +155,4 @@ for key, value in trial.params.items():
 #Visualizaciones de Optuna:
 uho.graf_registros_optimizacion(study)
 uho.graf_importancia_hyperparametros(study)
-
-#Forzar que los gráficos se abran en el navegador predeterminado
-pio.renderers.default = 'browser'
-
-#Lista de visualizaciones que querés generar
-graficos = {
-    #"optuna_parallel_coordinate.html": vis.plot_parallel_coordinate(study),
-    "optuna_slice.html": vis.plot_slice(study),
-    "optuna_optimization_history.html": vis.plot_optimization_history(study),
-    "optuna_param_importances.html": vis.plot_param_importances(study)
-}
-
-#Mostrar y guardar cada gráfico
-for nombre_archivo, fig in graficos.items():
-    fig.show()
-    fig.write_html(nombre_archivo)
-
-print("Visualizaciones generadas y guardadas como archivos .html.")
+uho.generar_visualizaciones_optuna(study, '600trials')

@@ -1,10 +1,15 @@
+#Librerias importantes
 import os
-from tensorflow.keras import optimizers
 import joblib
-import optuna
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
+import plotly.io as pio
+from tensorflow.keras import optimizers
+
+#Metodos y Libreria de Optuna
+import optuna
+import optuna.visualization as vis
+
 
 #Funcion para obtener optimizador:
 #Usamos como parametros del optimizador su nombre, el learning rate y el momentum en caso de que el optimizador lo ocupe
@@ -103,3 +108,36 @@ def exportar_top_trials_a_csv(study, top_n=10):
     ruta_csv = os.path.join(carpeta_salida, f"top_{top_n}_trials_{study.study_name}.csv")
     df.to_csv(ruta_csv, index=False)
     print(f"Top {top_n} trials exportados a: {ruta_csv}")
+    
+#Metodo que genera visualizaciones de optuna en html, abriendo en el navegador
+def generar_visualizaciones_optuna(study, nombre_custom=""):
+    #Se abre en el browser por default ya que spyder no cuenta con plots interactivos
+    pio.renderers.default = 'browser'
+
+    #Se guardan en carpeta optuna visualizers
+    directorio_actual = os.path.dirname(os.path.abspath(__file__))
+    carpeta_salida = os.path.join(directorio_actual, '..', '..', 'optuna visualizers')
+    os.makedirs(carpeta_salida, exist_ok=True)
+
+    # Diccionario con los gráficos que querés exportar
+    graficos = {
+        f"optuna_slice_{nombre_custom}.html": vis.plot_slice(study),
+        f"optuna_optimization_history_{nombre_custom}.html": vis.plot_optimization_history(study),
+        f"optuna_param_importances_{nombre_custom}.html": vis.plot_param_importances(study),
+        f"optuna_parallel_coordinate_{nombre_custom}.html": vis.plot_parallel_coordinate(study)
+    }
+
+    for nombre_archivo, fig in graficos.items():
+        ruta_salida = os.path.join(carpeta_salida, nombre_archivo)
+        fig.show()
+        fig.write_html(ruta_salida)
+
+    print(f"Visualizaciones de Optuna guardadas en: {carpeta_salida}")    
+    
+    
+    
+    
+    
+    
+    
+    
