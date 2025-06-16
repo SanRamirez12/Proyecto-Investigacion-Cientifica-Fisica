@@ -6,10 +6,10 @@ import utils_model_dev as umd
 import utils_hyperparameter_opt as uho
 import time
 import numpy as np
+import plotly.io as pio
 
 #Metodos de Skelearn
 from sklearn.model_selection import train_test_split    
-from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import StandardScaler
 
@@ -20,6 +20,7 @@ from tensorflow.keras import layers
 #Metodos Optuna:
 import optuna
 from optuna.integration import TFKerasPruningCallback
+import optuna.visualization as vis
 
 
 # ==================== CARGA Y ESCALADO ====================
@@ -30,6 +31,7 @@ X, Y, encoder = umd.cargar_dataset('df_final_solo_clases_definidas.parquet', enc
 #Se aseguran que son tipos correctos
 X = X.copy()
 Y = Y.astype(np.int32)
+n_clases = len(encoder.classes_) #Cantidad de clases
 
 #Se identifican las columnas a no escalar (spectrum types) y las demas se escalan 
 cols_no_escaladas = [col for col in X.columns if col.startswith("spectrum_")]
@@ -41,7 +43,7 @@ cols_a_escalar = [col for col in X.columns if col not in cols_no_escaladas]
 def objective(trial):
     
     # Hiperparámetros de numero decapas
-    num_layers = trial.suggest_int('num_capas_ocultas', 1, 5) 
+    num_layers = trial.suggest_int('num_capas_ocultas', 3, 5) 
     
     #Hiperparametros de compilacion
     optimizer_name = trial.suggest_categorical('optimizador', [
@@ -77,14 +79,14 @@ def objective(trial):
     model = keras.Sequential()
     model.add(layers.Input(shape=(X_train_scaled.shape[1],)))
     for i in range(num_layers):
-        units = trial.suggest_int(f'unidades_capa_{i}', 50, 130)
+        units = trial.suggest_int(f'unidades_capa_{i}', 30, 150)
         activation = trial.suggest_categorical(f'activación_capa_{i}', ['relu', 'tanh', 'selu', 'elu', 'gelu'])
         dropout_rate = trial.suggest_float(f'tasa_abandono_capa_{i}', 0.0, 0.5, step=0.05)
         model.add(layers.Dense(units, activation=activation))
         model.add(layers.Dropout(dropout_rate))
 
     #Se agrega el output layer con activacion softmax:
-    model.add(layers.Dense(5, activation='softmax'))
+    model.add(layers.Dense(n_clases, activation='softmax'))
     
     #Se compila el modelo
     model.compile(
@@ -124,27 +126,25 @@ t0 = time.time()
 #Se crea el estudio con optimizacion bayesiana de Optuna
 study = optuna.create_study(
     direction='maximize', #Maximiza la funcion objetivo para encontrar el modelo con el mejor f1score
-    study_name='Study300trials_#2_F1weighted_suggWeights', #Nombre del estudio
+    study_name='Study600trials_#2_F1weighted_suggWeights', #Nombre del estudio
     sampler=optuna.samplers.TPESampler(), #Tree-structured Parzen Estimator como estrategia de muestreo
     pruner=optuna.pruners.MedianPruner(n_warmup_steps=5)) #Permite interrumpir los trials que no prometen buenos resultados,
     #MedianPruner compara la métrica de validación con la mediana de otros trials en ese punto, 
     #n_warmup_steps=5: los primeros 5 pasos (épocas) de cada trial no se interrumpen
 
 #Se ejecuta el estudio
-study.optimize(objective, n_trials=300)
+study.optimize(objective, n_trials=600, timeout=5400) #Time out de 1.5h
 
 #Tiempos de estudio:
 tf = time.time()
 duracion = tf- t0
-minutos = int(duracion // 60)
-segundos = int(duracion % 60)
-print(f"\nDuración de ejecución del estudio:\n {minutos} minutos y {segundos} segundos\n")
+print(f"\nDuración de ejecución del estudio:\n {int(duracion // 60)} minutos y {int(duracion % 60)} segundos\n")
 
 # ==================== VISUALIZACIÓN Y GUARDADO ====================
 #Se guarda el estudio en la carpeta de hyperparameter studies:
-nombre_studie_salida = "Study300trials_#2_F1weighted_suggWeights"
+nombre_studie_salida = "Study600trials_#2_F1weighted_suggWeights"
 uho.guardar_estudio_optuna(study, nombre_studie_salida)
-uho.exportar_top_trials_a_csv(study, 10) 
+uho.exportar_top_trials_a_csv(study, 25) 
 
 #Describimos el mejor trial
 print("\nMejor trial:")
@@ -159,4 +159,20 @@ for key, value in trial.params.items():
 uho.graf_registros_optimizacion(study)
 uho.graf_importancia_hyperparametros(study)
 
-print(encoder.classes_)
+#Forzar que los gráficos se abran en el navegador predeterminado
+pio.renderers.default = 'browser'
+
+#Lista de visualizaciones que querés generar
+graficos = {
+    #"optuna_parallel_coordinate.html": vis.plot_parallel_coordinate(study),
+    "optuna_slice.html": vis.plot_slice(study),
+    "optuna_optimization_history.html": vis.plot_optimization_history(study),
+    "optuna_param_importances.html": vis.plot_param_importances(study)
+}
+
+#Mostrar y guardar cada gráfico
+for nombre_archivo, fig in graficos.items():
+    fig.show()
+    fig.write_html(nombre_archivo)
+
+print("Visualizaciones generadas y guardadas como archivos .html.")

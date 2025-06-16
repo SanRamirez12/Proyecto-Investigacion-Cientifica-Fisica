@@ -25,6 +25,7 @@ X, Y, encoder = umd.cargar_dataset('df_final_solo_clases_definidas.parquet', enc
 #Se aseguran que son tipos correctos
 X = X.copy()
 Y = Y.astype(np.int32)
+n_clases = len(encoder.classes_) #Cantidad de clases
 #print(f'Valores de X: \n{X}\n, Y: \n{Y}')
 
 #Se identifican las columnas a no escalar (spectrum types) y las demas se escalan 
@@ -89,7 +90,7 @@ for fold_idx, (trainval_idx, test_idx) in enumerate(kfold.split(X, Y)):
         Dropout(tasa_abandono[1]),
         Dense(hidden_units[2], activation=hidden_act_funct[2], name='hidden_layer3'),
         Dropout(tasa_abandono[2]),
-        Dense(5, activation='softmax', name='output_layer')
+        Dense(n_clases, activation='softmax', name='output_layer')
     ])
     
     #Se define el optimizador, funcion de costo, metrica y tasa de aprendizaje
