@@ -7,13 +7,10 @@ from livelossplot import PlotLossesKeras
 #Metodos de Skelearn
 from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
 from sklearn.metrics import classification_report, roc_curve, auc
-from sklearn.utils.class_weight import compute_class_weight
 from sklearn.preprocessing import StandardScaler, label_binarize
 
 #Metodos de Tensorflow
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.optimizers import AdamW, RMSprop
+from tensorflow.keras.optimizers import AdamW
 from tensorflow.keras.callbacks import EarlyStopping
 
 #Empezamos leyendo los archivos. tomamos el datos sin fuentes no asociadas:
@@ -23,7 +20,6 @@ X, Y, encoder = umd.cargar_dataset('df_final_solo_clases_definidas.parquet', enc
 #Se aseguran que son tipos correctos
 X = X.copy()
 Y = Y.astype(np.int32)
-n_clases = len(encoder.classes_) #Cantidad de clases
 #print(f'Valores de X: \n{X}\n, Y: \n{Y}')
 
 #Se identifican las columnas a no escalar (spectrum types) y las demas se escalan 
@@ -32,7 +28,7 @@ cols_a_escalar = [col for col in X.columns if col not in cols_no_escaladas]
 
 #Se define el K-Fold para el cross validation, en este caso de estratificado  y barajado para el imbalance de clases 
 kfold = StratifiedShuffleSplit(
-    n_splits=5, #Numero de folds
+    n_splits=10, #Numero de folds
     test_size=0.15, #Divide el test set en 15% y es diferente para cada split
     random_state=47 #Semilla de generador de numero aleatorio
     )
@@ -71,28 +67,30 @@ for fold_idx, (trainval_idx, test_idx) in enumerate(kfold.split(X, Y)):
     X_val_final = X_val_scaled.values.astype(np.float32)
     X_test_final = X_test_scaled.values.astype(np.float32)
 
-    #Se define el diccionario de Pesos de clase balanceados
-    clases_unicas = np.unique(Y_train) #De acuerdo con labels de Y
-    pesos_balanceados = compute_class_weight(class_weight='balanced', classes=clases_unicas, y=Y_train)
-    diccionario_de_pesos = {clase: peso for clase, peso in zip(clases_unicas, pesos_balanceados)}
+    #Se define el diccionario de Pesos de clase optimizados
+    class_weights = {}
+    for i, clase in enumerate(encoder.classes_):
+        if clase == 'BLL':
+            class_weights[i] = 1.7934758584743657 
+        elif clase == 'FSRQ':
+            class_weights[i] = 4.329571385425013
+        elif clase == 'NoAGN':
+            class_weights[i] = 4.098691988236785
+        elif clase == 'OtroAGN':
+            class_weights[i] = 16.023950163947294
 
     #Se define la Arquitectura del Perceptron
-    hidden_units = [93, 97, 90]
-    hidden_act_funct = ['tanh', 'relu', 'elu']
-    tasa_abandono = [0.0512, 0.3426, 0.2291] #Redondeados a 4 decimales
-
-    model = Sequential([
-        Dense(hidden_units[0], input_shape=(X.shape[1],), activation=hidden_act_funct[0], name='hidden_layer1'),
-        Dropout(tasa_abandono[0]),
-        Dense(hidden_units[1], activation=hidden_act_funct[1], name='hidden_layer2'),
-        Dropout(tasa_abandono[1]),
-        Dense(hidden_units[2], activation=hidden_act_funct[2], name='hidden_layer3'),
-        Dropout(tasa_abandono[2]),
-        Dense(n_clases, activation='softmax', name='output_layer')
-    ])
+    hidden_units = [136, 41, 83, 74] #Neuronas
+    hidden_act_funct = ['selu', 'relu', 'gelu', 'relu'] #Activaciones
+    tasa_abandono = [0.1, 0.0,  0.15, 0.45] #Dropout rates
+    n_clases = len(encoder.classes_) #Cantidad de clases
+    input_dim = X.shape[1]
+    
+    #Se construye el modelo
+    model = umd.construir_modelo_dinamico(input_dim, hidden_units, hidden_act_funct, tasa_abandono, n_clases)
     
     #Se define el optimizador, funcion de costo, metrica y tasa de aprendizaje
-    optimizador = RMSprop(learning_rate=0.0005) #Redondeado a 4 decimales
+    optimizador = AdamW(learning_rate= 0.00027385352272022773) #Redondeado a 4 decimales
     model.compile(optimizer=optimizador, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     
     #Se hace un Callback de con parada anticipada en caso de que el error de validacion no mejore
@@ -105,9 +103,9 @@ for fold_idx, (trainval_idx, test_idx) in enumerate(kfold.split(X, Y)):
         X_train_final, Y_train,
         validation_data=(X_val_final, Y_val),
         epochs=1000,
-        batch_size=49,
+        batch_size=81,
         callbacks=[PlotLossesKeras(), parada_temprana],
-        class_weight=diccionario_de_pesos,
+        class_weight=class_weights,
         verbose=1
     )
     tf = time.time()
@@ -180,8 +178,7 @@ for clase in encoder.classes_:
     std = np.std(all_auc_scores[clase])
     print(f"{clase}: {media:.4f} ± {std:.4f}")
 
-#Resumen del modelo
-model.summary()
+
 
 
 

@@ -254,7 +254,9 @@ Codigo random de toda la programacion hecha en caso de volver a ocupar de nuevo.
 
 # umd.graficar_metricas_por_clase(test_f1s, encoder)
 
-
+ # clases_unicas = np.unique(Y_train) #De acuerdo con labels de Y
+ # pesos_balanceados = compute_class_weight(class_weight='balanced', classes=clases_unicas, y=Y_train)
+ # diccionario_de_pesos = {clase: peso for clase, peso in zip(clases_unicas, pesos_balanceados)}
 
 
 

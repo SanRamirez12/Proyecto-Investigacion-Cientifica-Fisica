@@ -11,6 +11,10 @@ from datetime import datetime
 from sklearn.preprocessing import LabelEncoder, label_binarize
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 
+#Metodos de TensorFlow
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+
 #Ocupamos una funcion que nos lea archivos de datos .parquet o .csv y nos devuelva 
 # separademente X e Y, y codifica la columna CLASS1.
 def cargar_dataset(nombre_archivo, encoding='label', return_encoder=False):
@@ -57,6 +61,26 @@ def cargar_dataset(nombre_archivo, encoding='label', return_encoder=False):
         return X, Y, encoder
     return X, Y
 
+#Metodo que construye un modelo MLP dinámicamente según las listas dadas.
+def construir_modelo_dinamico(input_dim, hidden_units, activaciones, dropouts, output_units):
+    #Se verifica que las listas esten en la misma dimension
+    assert len(hidden_units) == len(activaciones) == len(dropouts), "Longitudes de configuración inconsistente"
+    #Se establece el modelo de red
+    model = Sequential()
+    #Se crea el modelo de acuerdo al numero de capas
+    for i in range(len(hidden_units)):
+        if i == 0: #Para el hidden layer 1 se establece el inputdim
+            model.add(Dense(hidden_units[i], input_dim=input_dim, activation=activaciones[i], name=f"hidden_layer{i+1}"))
+        else: #Para las capas ocultas 
+            model.add(Dense(hidden_units[i], activation=activaciones[i], name=f"hidden_layer{i+1}"))
+        
+        model.add(Dropout(dropouts[i])) #Se establecen los dropout layer despues de cada hidden layer
+    #Se establece el output layer para el numero de clases y con activacion softmax.
+    model.add(Dense(output_units, activation='softmax', name='output_layer'))
+    #Se retorna elmodelo
+    return model
+
+######################################## METODOS DE VISUALIZACIONES Y METRICAS #####################################################
 #Metodo que me plotea la matriz de confusion para ver los valores positivos y negativos/ falsos y verdaderos
 def matriz_confusion(y_true, y_pred, labbels_clases):
     
@@ -74,19 +98,30 @@ def matriz_confusion(y_true, y_pred, labbels_clases):
     
 #Metodo para graficar las curvas de aprendizaje.
 def learning_curves(histories):
-    plt.figure(figsize=(10, 4))
-    
-    for i, hist in enumerate(histories):
-        plt.plot(hist['loss'], alpha=0.5, label=f'Fold {i+1} - Entrenamiento')
-        plt.plot(hist['val_loss'], alpha=0.5, linestyle='--', label=f'Fold {i+1} - Validacion')
-    
-    plt.xlabel('Épocas')
-    plt.ylabel('Pérdida')
-    plt.title('Curvas de aprendizaje por fold')
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
+   fig, ax = plt.subplots(figsize=(10, 5))
+
+   lines = []  # para recolectar handles
+   labels = []  # para recolectar etiquetas
+
+   for i, hist in enumerate(histories):
+       l1, = ax.plot(hist['loss'], alpha=0.5, label=f'Fold {i+1} - Entrenamiento')
+       l2, = ax.plot(hist['val_loss'], alpha=0.5, linestyle='--', label=f'Fold {i+1} - Validación')
+       lines.extend([l1, l2])
+       labels.extend([f'Fold {i+1} - Entrenamiento', f'Fold {i+1} - Validación'])
+
+   ax.set_xlabel('Épocas')
+   ax.set_ylabel('Pérdida')
+   ax.set_title('Curvas de aprendizaje por fold')
+   ax.grid(True)
+
+   # Crear figura adicional para leyenda
+   fig.subplots_adjust(bottom=0.35)  # Deja espacio suficiente
+   fig.legend(lines, labels,
+                       loc='upper center', bbox_to_anchor=(0.5, 0),
+                       ncol=4, fancybox=True, shadow=True)
+
+   plt.tight_layout()
+   plt.show()
 
 #Metodo de reporte general de metricas: 
 def reporte_general_metricas(fold_accuracies, fold_classification_reports, encoder):
@@ -98,16 +133,24 @@ def reporte_general_metricas(fold_accuracies, fold_classification_reports, encod
 
     #F1-score promedio por clase
     f1_scores = {class_name: [] for class_name in encoder.classes_}
-
+    f1_weighted = []
+    
     for report in fold_classification_reports:
         for class_name in encoder.classes_:
             f1_scores[class_name].append(report[class_name]["f1-score"])
+        # Guardamos también el f1_score promedio ponderado (weighted)
+        f1_weighted.append(report["weighted avg"]["f1-score"])
 
     print("\n F1-score promedio por clase entre folds:\n")
     for class_name in encoder.classes_:
         f1_mean = np.mean(f1_scores[class_name])
         f1_std = np.std(f1_scores[class_name])
         print(f" - {class_name}: {f1_mean:.4f} ± {f1_std:.4f}")
+        
+    # F1-score weighted global entre folds
+    f1_w_mean = np.mean(f1_weighted)
+    f1_w_std = np.std(f1_weighted)
+    print(f"\n F1-score (weighted) promedio entre folds: {f1_w_mean:.4f} ± {f1_w_std:.4f}")
 
 #Metodo que genera un boxplot de la distribución del F1-score por clase entre folds.
 def varianza_entre_folds(fold_classification_reports):
