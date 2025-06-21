@@ -23,8 +23,11 @@ from optuna.integration import TFKerasPruningCallback
 # ==================== CARGA Y LECTURA ====================
 
 #Empezamos leyendo los archivos. tomamos el datos sin fuentes no asociadas:
-X, Y, encoder = umd.cargar_dataset('df_final_solo_clases_definidas.parquet', encoding='label', return_encoder=True)
+X, Y, encoder = umd.cargar_dataset('df_final_clases_definidas_sin_OtroAGN.parquet', encoding='label', return_encoder=True)
 
+if 3 in Y:  # Suponiendo que OtroAGN era clase 3
+    print("¡Advertencia! Se encontró la clase OtroAGN en los datos.")
+    
 #Se aseguran que son tipos correctos
 X = X.copy()
 Y = Y.astype(np.int32)
@@ -48,19 +51,20 @@ def objective(trial):
     ])
     learning_rate = trial.suggest_float('tasa_aprendizaje', 1e-5, 1e-3, log=True)
     momentum = trial.suggest_float('momentum', 0.0, 0.9, step=0.05) if 'momentum' in optimizer_name else 0.0
-    batch_size = trial.suggest_int('tamaño_lote', 32, 128)
+    batch_size = trial.suggest_int('tamaño_lote', 30, 130)
+    patience=trial.suggest_int('early_stop_patience', 5, 50, step=5)
     
     #Pesos por clase como hiperparámetros nombrados según el nombre real de la clase
     class_weights = {}
     for i, clase in enumerate(encoder.classes_):
         if clase == 'BLL':
-            class_weights[i] = trial.suggest_float('peso_BLL', 0.5, 5.0)
+            class_weights[i] = trial.suggest_float('peso_BLL', 0.5, 2.0)
         elif clase == 'FSRQ':
-            class_weights[i] = trial.suggest_float('peso_FSRQ', 0.5, 5.0)
+            class_weights[i] = trial.suggest_float('peso_FSRQ', 0.5, 2.0)
         elif clase == 'NoAGN':
-            class_weights[i] = trial.suggest_float('peso_NoAGN', 0.5, 5.0)
-        elif clase == 'OtroAGN':
-            class_weights[i] = trial.suggest_float('peso_OtroAGN', 0.5, 25.0)
+            class_weights[i] = trial.suggest_float('peso_NoAGN', 0.5, 2.0)
+        # elif clase == 'OtroAGN':
+        #     class_weights[i] = trial.suggest_float('peso_OtroAGN', 0.5, 25.0)
     
     # ===== Split train/val manual (80/20) =====
     X_train, X_val, y_train, y_val = train_test_split(X, Y, test_size=0.2, stratify=Y, random_state=42)
@@ -76,9 +80,9 @@ def objective(trial):
     model = keras.Sequential()
     model.add(layers.Input(shape=(X_train_scaled.shape[1],)))
     for i in range(num_layers):
-        units = trial.suggest_int(f'unidades_capa_{i}', 30, 150)
-        activation = trial.suggest_categorical(f'activación_capa_{i}', ['relu', 'tanh', 'selu', 'elu', 'gelu'])
-        dropout_rate = trial.suggest_float(f'tasa_abandono_capa_{i}', 0.0, 0.5, step=0.05)
+        units = trial.suggest_int(f'unidades_capa_{i+1}', 30, 150)
+        activation = trial.suggest_categorical(f'activación_capa_{i+1}', ['relu', 'tanh', 'selu', 'elu', 'gelu'])
+        dropout_rate = trial.suggest_float(f'tasa_abandono_capa_{i+1}', 0.0, 0.5, step=0.05)
         model.add(layers.Dense(units, activation=activation))
         model.add(layers.Dropout(dropout_rate))
 
@@ -101,7 +105,7 @@ def objective(trial):
         batch_size=batch_size,
         verbose=0,
         callbacks=[
-            keras.callbacks.EarlyStopping(patience=10, restore_best_weights=True),
+            keras.callbacks.EarlyStopping(patience=patience, restore_best_weights=True),
             TFKerasPruningCallback(trial, 'val_accuracy')
         ],
         class_weight=class_weights
@@ -109,6 +113,11 @@ def objective(trial):
     t_final = time.time()
     duracion = t_final- t_inicio
     print(f"\Duración del trial:\n {int(duracion // 60)} minutos y {int(duracion % 60)} segundos\n")
+    
+    # ===== Filtro para evitar falsos positivos en F1 =====
+    if len(history.history['loss']) < 10:
+        print("Trial descartado por converger en menos de 10 épocas.")
+        return 0.0
     
     # ===== Evaluación final sobre validation ara ese modelo de ese trial ===== 
     y_pred = model.predict(X_val_scaled)
@@ -121,9 +130,10 @@ def objective(trial):
 #Parte donde se buscan los mejores modelos con los mejores hiperparametros
 t0 = time.time()
 #Se crea el estudio con optimizacion bayesiana de Optuna
+nombre_studie_salida = "Study600trials_#1_F1weighted_3clases"
 study = optuna.create_study(
     direction='maximize', #Maximiza la funcion objetivo para encontrar el modelo con el mejor f1score
-    study_name='Study600trials_#2_F1weighted_suggWeights', #Nombre del estudio
+    study_name=nombre_studie_salida, #Nombre del estudio
     sampler=optuna.samplers.TPESampler(), #Tree-structured Parzen Estimator como estrategia de muestreo
     pruner=optuna.pruners.MedianPruner(n_warmup_steps=5)) #Permite interrumpir los trials que no prometen buenos resultados,
     #MedianPruner compara la métrica de validación con la mediana de otros trials en ese punto, 
@@ -139,7 +149,6 @@ print(f"\nDuración de ejecución del estudio:\n {int(duracion // 60)} minutos y
 
 # ==================== VISUALIZACIÓN Y GUARDADO ====================
 #Se guarda el estudio en la carpeta de hyperparameter studies:
-nombre_studie_salida = "Study600trials_#2_F1weighted_suggWeights"
 uho.guardar_estudio_optuna(study, nombre_studie_salida)
 uho.exportar_top_trials_a_csv(study, 25) 
 
@@ -156,3 +165,35 @@ for key, value in trial.params.items():
 uho.graf_registros_optimizacion(study)
 uho.graf_importancia_hyperparametros(study)
 uho.generar_visualizaciones_optuna(study, '600trials')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

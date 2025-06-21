@@ -261,7 +261,17 @@ Codigo random de toda la programacion hecha en caso de volver a ocupar de nuevo.
 
 
 
-
+    # #Se define el diccionario de Pesos de clase optimizados
+    # class_weights = {}
+    # for i, clase in enumerate(encoder.classes_):
+    #     if clase == 'BLL':
+    #         class_weights[i] = 1.7934758584743657 
+    #     elif clase == 'FSRQ':
+    #         class_weights[i] = 4.329571385425013
+    #     elif clase == 'NoAGN':
+    #         class_weights[i] = 4.098691988236785
+    #     elif clase == 'OtroAGN':
+    #         class_weights[i] = 16.023950163947294
 
 
 
