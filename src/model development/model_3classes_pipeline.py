@@ -16,7 +16,7 @@ from livelossplot import PlotLossesKeras
 from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
 from sklearn.metrics import classification_report, roc_curve, auc
 from sklearn.preprocessing import StandardScaler, label_binarize
-from sklearn.utils.class_weight import compute_class_weight
+# from sklearn.utils.class_weight import compute_class_weight
 
 #Metodos de Tensorflow
 from tensorflow.keras.optimizers import AdamW
@@ -42,7 +42,7 @@ cols_a_escalar = [col for col in X.columns if col not in cols_no_escaladas]
 kfold = StratifiedShuffleSplit(
     n_splits=10, #Numero de folds
     test_size=0.15, #Divide el test set en 15% y es diferente para cada split
-    random_state=47 #Semilla de generador de numero aleatorio
+    random_state=69 #Semilla de generador de numero aleatorio
     )
 
 #Inicializacion de estructuras para guardar resultados:
@@ -79,15 +79,25 @@ for fold_idx, (trainval_idx, test_idx) in enumerate(kfold.split(X, Y)):
     X_val_final = X_val_scaled.values.astype(np.float32)
     X_test_final = X_test_scaled.values.astype(np.float32)
 
-    #Se define el diccionario de Pesos de clase optimizados
-    clases_unicas = np.unique(Y_train) #De acuerdo con labels de Y
-    pesos_balanceados = compute_class_weight(class_weight='balanced', classes=clases_unicas, y=Y_train)
-    diccionario_de_pesos = {clase: peso for clase, peso in zip(clases_unicas, pesos_balanceados)}
+    #Se define el diccionario de Pesos de clase optimizados:
+    
+    # clases_unicas = np.unique(Y_train) #De acuerdo con labels de Y
+    # pesos_balanceados = compute_class_weight(class_weight='balanced', classes=clases_unicas, y=Y_train)
+    # diccionario_de_pesos = {clase: peso for clase, peso in zip(clases_unicas, pesos_balanceados)}
+    
+    diccionario_de_pesos = {}
+    for i, clase in enumerate(encoder.classes_):
+        if clase == 'BLL':
+            diccionario_de_pesos[i] = 0.9267434224754194
+        elif clase == 'FSRQ':
+            diccionario_de_pesos[i] = 0.912883422297037
+        elif clase == 'NoAGN':
+            diccionario_de_pesos[i] = 1.8520622682254024
 
     #Se define la Arquitectura del Perceptron
-    hidden_units = [136, 41, 83, 74] #Neuronas
-    hidden_act_funct = ['selu', 'relu', 'gelu', 'relu'] #Activaciones
-    tasa_abandono = [0.1, 0.0,  0.15, 0.45] #Dropout rates
+    hidden_units = [121, 105, 137, 80] #Neuronas
+    hidden_act_funct = ['relu', 'selu', 'gelu', 'selu'] #Activaciones
+    tasa_abandono = [0.25, 0.15,  0.10, 0.10] #Dropout rates
     n_clases = len(encoder.classes_) #Cantidad de clases
     input_dim = X.shape[1]
     
@@ -95,11 +105,11 @@ for fold_idx, (trainval_idx, test_idx) in enumerate(kfold.split(X, Y)):
     model = umd.construir_modelo_dinamico(input_dim, hidden_units, hidden_act_funct, tasa_abandono, n_clases)
     
     #Se define el optimizador, funcion de costo, metrica y tasa de aprendizaje
-    optimizador = AdamW(learning_rate= 0.00027385352272022773) #Redondeado a 4 decimales
+    optimizador = AdamW(learning_rate= 0.000853497210084709) 
     model.compile(optimizer=optimizador, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     
     #Se hace un Callback de con parada anticipada en caso de que el error de validacion no mejore
-    parada_temprana = EarlyStopping(monitor='val_loss', patience=50, restore_best_weights=True)
+    parada_temprana = EarlyStopping(monitor='val_loss', patience=75, restore_best_weights=True)
     
     ####################### Entrenamiento ####################################
     print("\nEntrenando modelo...")
@@ -108,7 +118,7 @@ for fold_idx, (trainval_idx, test_idx) in enumerate(kfold.split(X, Y)):
         X_train_final, Y_train,
         validation_data=(X_val_final, Y_val),
         epochs=1000,
-        batch_size=81,
+        batch_size=55,
         callbacks=[PlotLossesKeras(), parada_temprana],
         class_weight=diccionario_de_pesos,
         verbose=1
