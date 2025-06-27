@@ -17,17 +17,7 @@ def select_columnas(headers):
         if nombre_columna in headers:
             ttypes.append(headers[nombre_columna])
     #print(ttypes) #Tipos de columnas
-    '''
- A partir de los nombres de columnas, los vemos y elegimos de los 79 los que nos parecen:
-Los uncertanties de las energias no los tomamos.
-Las columnas 'Flux_Band', 'nuFnu_Band', 'Flux_History' son arrays de 8, 8 y 14 valores respectivamentes:
-Las columnas 'Flux_Peak', 'Variability_Index', 'Frac_Variability' tienen nulls identificados como np.inf (5370,1,1 respectivamew)
-De acuerdo con la explicacion fisica detras de la eliminacion de'Flux1000', 'Energy_Flux100' se debe a que
-estas muestran flujos de energia dependientes de la intensidad y a la que se midieron y su distancia
-y estos valores no son tan representativos como el espectro final y los indices de dichos espectros
-por ende para este estudio mejor los eliminamos. 
-Las columnas 'LP_EPeak' y 'PLEC_EPeak' tienen muchos NaNs y no nos sirven para el analisis
-    '''
+
     #Lista de columnas seleccionadas:
     columnas_seleccionadas = [
         'SpectrumType', 'PL_Flux_Density', 'PL_Index', 'LP_Flux_Density', 
@@ -35,15 +25,7 @@ Las columnas 'LP_EPeak' y 'PLEC_EPeak' tienen muchos NaNs y no nos sirven para e
         'PLEC_IndexS', 'PLEC_ExpfactorS', 'PLEC_Exp_Index', 'PLEC_SigCurv', 
         'Npred','Variability_Index', 'Frac_Variability', 'CLASS1'
         ]
-    #catidad_select = len(columnas_seleccionadas)
-    #Lista de columnas eliminadas:
-    # columnas_eliminadas = [
-    #     'Flux_Band', 'nuFnu_Band', 'Flux_History', 
-    #     'Flux_Peak', 'LP_EPeak', 'PLEC_EPeak', 'Flux1000', 'Energy_Flux100'
-    #     ]
-    #cantidad_elim= len(columnas_eliminadas)
-    
-    #print(f"Seleccionamos una catidad de {catidad_select} columnas y eliminamos {cantidad_elim} columnas")
+
     return columnas_seleccionadas
 
 #Leer el archivo y transformarlo como un data frame
@@ -357,3 +339,32 @@ def resumen_cantidad_por_clase(df):
     # Ordenar alfabéticamente para claridad
     conteo = conteo.sort_values(by='Clase').reset_index(drop=True)
     return conteo
+
+# Método adaptado para leer FITS incluyendo 'Source_Name'
+def leer_fits_vela(nombre_archivo):
+    directorio_actual = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(directorio_actual, '..', '..', 'data', 'raw', nombre_archivo)
+
+    with fits.open(file_path, mode="readonly") as datos_fits_4fgl:
+        catalogo_fuentes = datos_fits_4fgl[1].data
+        headers = datos_fits_4fgl[1].header
+
+        columnas_seleccionadas = [
+            'Source_Name', 'SpectrumType', 'PL_Flux_Density', 'PL_Index', 'LP_Flux_Density',
+            'LP_Index', 'LP_beta', 'LP_SigCurv','PLEC_Flux_Density', 'PLEC_IndexS', 
+            'PLEC_ExpfactorS', 'PLEC_Exp_Index', 'PLEC_SigCurv', 'Npred',
+            'Variability_Index', 'Frac_Variability', 'CLASS1'
+        ]
+
+        datos = {}
+        for col in columnas_seleccionadas:
+            col_data = catalogo_fuentes[col]
+            if col_data.dtype.byteorder == '>':
+                col_data = col_data.byteswap().newbyteorder()
+            datos[col] = col_data
+
+        df = pd.DataFrame(datos)
+
+    # Limpieza robusta de espacios invisibles
+    df['Source_Name'] = df['Source_Name'].astype(str).str.strip().str.replace(r'\s+', ' ', regex=True)
+    return df
