@@ -55,11 +55,11 @@ print(df_vela)
 df_vela = df_vela.drop(columns=['Source_Name'])
 print(df_vela)
 
-# === Paso 5: Exportación ===
-directorio_base = os.path.dirname(os.path.abspath(__file__))
-carpeta = os.path.join(directorio_base, '..', '..', 'data', 'post preliminary analysis')
-os.makedirs(carpeta, exist_ok=True)
+# # === Paso 5: Exportación ===
+# directorio_base = os.path.dirname(os.path.abspath(__file__))
+# carpeta = os.path.join(directorio_base, '..', '..', 'data', 'post preliminary analysis')
+# os.makedirs(carpeta, exist_ok=True)
 
-df_vela.to_csv(f'{carpeta}/fuentes_vela.csv', index=False)
-df_vela.to_parquet(f'{carpeta}/fuentes_vela.parquet', index=False)
-print("Exportación completada exitosamente a CSV y Parquet.")
+# df_vela.to_csv(f'{carpeta}/fuentes_vela.csv', index=False)
+# df_vela.to_parquet(f'{carpeta}/fuentes_vela.parquet', index=False)
+# print("Exportación completada exitosamente a CSV y Parquet.")

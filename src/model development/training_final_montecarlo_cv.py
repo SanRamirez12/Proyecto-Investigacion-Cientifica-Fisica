@@ -8,7 +8,7 @@ Resumen de flujo:
 2. Split estratificado en entrenamiento y prueba (80/20)
 3. Aplicación de SMOTENC para balanceo de clases en el set de entrenamiento
 4. Normalización de features continuas
-5. Repetición de entrenamiento MLP por n_iteraciones (default: 200)
+5. Repetición de entrenamiento MLP por n_iteraciones (default: 100)
 6. Filtro por métricas mínimas: F1 ponderado, F1 por clase, AUC total
 7. Selección del mejor modelo entre los aceptados
 8. Exportación del modelo en formatos .pkl y .h5, más un CSV con métricas
@@ -71,9 +71,10 @@ X_train_final = X_train_bal.values.astype(np.float32)
 X_test_final = X_test_scaled.values.astype(np.float32)
 
 # =================== ENTRENAMIENTO MONTE CARLO ===================
+t_train_inicio = time.time()
 #Se definen los parametros iniciales antes de entrenar
 mejores_modelos = []
-n_iteraciones = 200
+n_iteraciones = 100
 umbral_f1_weighted = 0.85
 umbral_f1_por_clase = {'BLL': 0.86, 'FSRQ': 0.81, 'NoAGN': 0.81}
 umbral_auc_total = 0.94
@@ -95,7 +96,10 @@ for i in range(n_iteraciones):
 
     #Tecnica de parada temprana
     parada_temprana = EarlyStopping(monitor='val_loss', patience=50, restore_best_weights=True)
-
+    
+    print("\nEntrenando modelo...")
+    ti0 = time.time()
+    
     #Se entrena el modelo
     history = model.fit(
         X_train_final, Y_train_bal,
@@ -105,6 +109,9 @@ for i in range(n_iteraciones):
         callbacks=[parada_temprana],
         verbose=0
     )
+    
+    tif = time.time()
+    print(f"\nDuración del entrenamiento: {int((tif - ti0) // 60)} min {int((tif - ti0) % 60)} s")
     
     #Se capturan los errores del entrenamiento:
     train_loss_final = history.history['loss'][-1]
@@ -146,11 +153,16 @@ for i in range(n_iteraciones):
             'train_loss_final': train_loss_final,
             'val_loss_final': val_loss_final,
             'error_abs': error_abs,
-            'overfitting_ratio': overfitting_ratio
+            'overfitting_ratio': overfitting_ratio,
+            'feature_names': X.columns.tolist()
+
         })
     else:
         print(f"\u274C Modelo descartado. No cumplió las métricas mínimas esperadas.")
         print(f"F1-weighted: {f1_weighted:.4f}, BLL: {f1_bll:.4f}, FSRQ: {f1_fsrq:.4f}, NoAGN: {f1_noagn:.4f}, AUC: {auc_total:.4f}")
+
+fin = time.time()
+print(f"\nTiempo total: {int((fin - t_train_inicio) // 60)} min {int((fin - t_train_inicio) % 60)} s")
 
 # =================== SELECCION DEL MEJOR ===================
 if mejores_modelos:
@@ -158,7 +170,8 @@ if mejores_modelos:
     
     #Se exportan el mejor modelo ysus metricas para su estudio
     timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    folder = os.path.join('data', 'monte carlo results')
+    directorio_base = os.path.dirname(os.path.abspath(__file__))
+    folder = os.path.join(directorio_base, '..', '..', 'data', 'monte carlo results')
     os.makedirs(folder, exist_ok=True)
 
     filename_pkl = os.path.join(folder, f"mejor_modelo_montecarlo_{timestamp}.pkl")
