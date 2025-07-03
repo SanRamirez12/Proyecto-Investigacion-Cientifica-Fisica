@@ -6,11 +6,9 @@ Este combina los conocimientos tanto de física como de la carrera de ingenierí
 
 ## 🔍 Objetivo
 
-Desarrollar un modelo basado en ANN que clasifique fuentes en cinco clases:
+Desarrollar un modelo basado en ANN que clasifique fuentes en tres clases:
 - FSRQ
 - BLL
-- BCU
-- Otro AGN
 - No AGN
 
 ## 🧠 Estado del Proyecto
@@ -23,9 +21,9 @@ Actualmente se encuentra en las fases de:
 Se utiliza el enfoque **CRISP-ML** muy recomendada para estos proyectos grandes de Machine Learning , con las siguientes etapas:
 1. Comprensión del tema astrofísico, sus catálogos y sus datos. (Finalizado)
 2. Ingeniería de datos (Exploración y preparación de datos). (Finalizado)
-3. Ingeniería de modelos de aprendizaje automático (Diseño del modelo ANN) (en proceso)
-4. Implementación del modelo ANN (por realizar)
-5. Evaluación de resultados (por realizar)
+3. Ingeniería de modelos de aprendizaje automático (Diseño del modelo ANN) (Finalizado)
+4. Implementación del modelo ANN (Finalizado)
+5. Evaluación de resultados (Finalizado)
 
 ## 🗂️ Datos
 
