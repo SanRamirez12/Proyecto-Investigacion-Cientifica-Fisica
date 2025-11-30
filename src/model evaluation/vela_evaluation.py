@@ -14,7 +14,7 @@ base_dir = os.path.abspath(os.path.join(directorio_actual, '..', '..'))
 
 path_modelo = os.path.join(base_dir, 'data', 'monte carlo results', 'mejor_modelo_montecarlo_2025-06-27_14-28-38.h5')
 path_pkl = os.path.join(base_dir, 'data', 'monte carlo results', 'mejor_modelo_montecarlo_2025-06-27_14-28-38.pkl')
-path_fuentes_vela = os.path.join(base_dir, 'data', 'post preliminary analysis', 'fuentes_velaV2.parquet')
+path_fuentes_vela = os.path.join(base_dir, 'data', 'post preliminary analysis', 'fuentes_velaV4.parquet')
 
 # ======== CARGA DE MODELO Y DATOS ========
 model = load_model(path_modelo)
@@ -110,8 +110,8 @@ output_dir = os.path.join(base_dir, 'data', 'model evaluation')
 os.makedirs(output_dir, exist_ok=True)
 
 # Guardar archivo
-output_path = os.path.join(output_dir, 'predicciones_vela_V2.csv')
+output_path = os.path.join(output_dir, 'predicciones_fuentes_extra.csv')
 df_resultado.to_csv(output_path, index=False)
-print(f"\nArchivo 'predicciones_vela_V2.csv' generado exitosamente en:\n{output_path}")
+print(f"\nArchivo 'predicciones_fuentes_extra.csv' generado exitosamente en:\n{output_path}")
 
 
