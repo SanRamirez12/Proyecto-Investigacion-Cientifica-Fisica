@@ -76,15 +76,56 @@ The methodology developed here supports the interpretation of unidentified Fermi
 ---
 
 ## Project Structure
-├── data/ # Input datasets and curated samples
 
-├── src/ # Source code (preprocessing, training, evaluation)
+The repository is organized following a clear separation of concerns, aligned with the CRISP-ML methodology and typical research-grade machine learning workflows.
 
-├── plots/ # Figures and diagnostic visualizations
 
-├── README.md # Project documentation
+Proyecto-Investigacion-Cientifica-Fisica/
+│
+├── data/
+│   ├── raw/                  # Original data extracted from the 4FGL-DR4 catalog
+│   ├── external/             # External reference datasets or auxiliary catalogs
+│   ├── interim/              # Intermediate datasets generated during preprocessing
+│   └── processed/            # Final curated datasets used for training and evaluation
+│
+├── src/
+│   ├── data exploration/
+│   │   ├── data_exploration.py        # Exploratory Data Analysis (EDA) and diagnostics
+│   │   ├── utils_data_exp.py           # Utility functions for EDA and preprocessing
+│   │   └── vela_sources_preprocessing.py
+│   │                                   # Preprocessing pipeline for Vela region sources
+│   │
+│   ├── model development/
+│   │   ├── hyperparameter_optuna.py    # Bayesian hyperparameter optimization with Optuna
+│   │   ├── model_3classes_pipeline.py  # ANN pipeline for 3-class classification (FSRQ/BLL/NoAGN)
+│   │   ├── model_4classes_pipeline.py  # Extended ANN pipeline including additional AGN classes
+│   │   ├── training_final_montecarlo_cv.py
+│   │                                   # Final Monte Carlo training with stratified cross-validation
+│   │   ├── utils_hyperparameter_opt.py # Helper utilities for optimization workflows
+│   │   └── utils_model_dev.py           # Model construction, compilation, and training utilities
+│   │
+│   └── random tests/
+│       ├── PruebasRandom.py             # Early experimental scripts and sanity checks
+│       ├── pruebas_Pandas.py            # Pandas-based data inspection tests
+│       ├── pruebas_iniciales.py         # Initial prototype experiments
+│       ├── codigo_random.py             # Miscellaneous exploratory code
+│       └── expAnalysis_bases.py          # Early experimental analysis foundations
+│
+├── plots/
+│   ├── training_curves/        # Loss and metric evolution plots
+│   ├── confusion_matrices/    # Confusion matrices for trained models
+│   └── eda_figures/            # Figures generated during exploratory data analysis
+│
+├── README.md                   # Project documentation and scientific context
+├── .gitignore                  # Git ignore rules (caches, IDE configs, non-versionable files)
+└── requirements.txt            # Python dependencies for reproducibility
 
-└── .gitignore
+### Structure Design Notes
+
+- All folder names are **lowercase and consistent**, avoiding cross-platform issues between Windows and Linux systems.
+- The `src/` directory is structured by **functional responsibility** rather than execution order.
+- Experimental and legacy scripts are isolated under `random tests/` to keep the main pipeline clean.
+- The structure supports **reproducibility**, **paper traceability**, and future extension of the pipeline.
 
 ---
 
