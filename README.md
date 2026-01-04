@@ -122,7 +122,7 @@ Universidad de Costa Rica
 In collaboration with:
 - **Dr. Miguel Araya**
 - **Diego Bueso**
-- **Braulio Solano-Rojas**
+- **Dr. Braulio Solano**
 
 ---
 
