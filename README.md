@@ -1,65 +1,79 @@
-# Clasificación de AGNs con Redes Neuronales
+# Gamma-ray Source Classification with Artificial Neural Networks
 
-El siguiente proyecto es para el curso final de la carrera de física pura; denominado Investigación Científica. Este proyecto busca clasificar fuentes del catálogo 4FGL-DR4 del Fermi-LAT en distintas categorías de núcleos activos de galaxias (AGNs) mediante una red neuronal artificial (ANN).
+This repository contains the complete implementation of a machine learning pipeline for the classification of gamma-ray sources detected by the **Fermi Large Area Telescope (Fermi-LAT)**.  
+The project focuses on identifying **Active Galactic Nuclei (AGNs)** using data from the **4FGL-DR4 catalog**, with special emphasis on robust generalization to unlabeled and Galactic source populations.
 
-Este combina los conocimientos tanto de la carrera de física como de la carrera de ingeniería en sistemas. 
+---
 
-## Objetivo
+## Project Overview
 
-Desarrollar un modelo basado en ANN que clasifique fuentes en tres clases:
-- FSRQ
-- BLL
-- No AGN
+The main goal of this project is to **automatically classify gamma-ray sources** into three astrophysically meaningful categories:
 
-## Estado del Proyecto
+- **FSRQ** (Flat Spectrum Radio Quasars)  
+- **BLL** (BL Lacertae objects)  
+- **NoAGN** (non–active galactic nucleus sources)
 
-Finalizado
+A **Multi-Layer Perceptron (MLP)** artificial neural network was designed, optimized, and validated to address this task, integrating both astrophysical domain knowledge and modern machine learning practices.
 
-# Metodología
+This work was developed as the **final research project for the Physics undergraduate program**, combining expertise from **Physics** and **Computer Systems Engineering**.
 
-Se utiliza el enfoque **CRISP-ML** muy recomendada para estos proyectos grandes de Machine Learning , con las siguientes etapas:
-1. Comprensión del tema astrofísico, sus catálogos y sus datos. 
-2. Ingeniería de datos (Exploración y preparación de datos). 
-3. Ingeniería de modelos de aprendizaje automático (Diseño del modelo ANN).
-4. Implementación del modelo ANN .
-5. Evaluación de resultados.
+---
 
-## Datos
+## Scientific Context
 
-- **Fuente principal**: [4FGL-DR4 (Fermi-LAT 14-year Source Catalog)](https://fermi.gsfc.nasa.gov/ssc/data/access/lat/14yr_catalog/)
-- **Features**: Se han identificado *17* parámetros como posibles entradas para el modelo y *1* con los labels de clases. La selección final está en curso.
+Gamma-ray source catalogs such as **4FGL-DR4** contain thousands of detected sources, many of which remain **unassociated or ambiguously classified**.  
+Manual classification is time-consuming and limited by observational constraints, motivating the use of **data-driven classification methods**.
 
-## Herramientas y Dependencias
+This project contributes a **validated ANN-based methodology** for source classification and uncertainty reduction in large astrophysical catalogs.
 
-- Python 3.10+
-- Bibliotecas:
-  - numpy
-  - pandas
-  - matplotlib 
-  - seaborn
-  - scikit-learn
-  - tensorflow / keras
-  - astropy
-  - optuna
-  - os
-  - time
-  - livelossplot
-  - joblib
-  - imblearn
+---
 
-## Estructura del Proyecto
+## Methodology
 
-AGN-Classification/
+The project follows the **CRISP-ML (Cross-Industry Standard Process for Machine Learning)** framework, adapted for astrophysical research:
 
-├── data/                # Datos originales y procesados
+1. **Astrophysical understanding** of gamma-ray catalogs and AGN populations  
+2. **Data engineering**: cleaning, preprocessing, exploratory data analysis (EDA)  
+3. **Feature engineering** based on spectral and variability parameters  
+4. **Model engineering**: ANN design and optimization  
+5. **Evaluation and scientific validation**
 
-├── src/           # El source del proyecto donde se encuentran las carpetas con todo el código
+---
 
-├── results-deployment/              # El modelo final exportado
+## Model Description
 
-├── plots/             # Visualizaciones y resultados estadísticos
+- **Architecture**: Multi-Layer Perceptron (MLP)
+- **Inputs**: 15 physically motivated spectral and variability features from 4FGL-DR4
+- **Output**: Multiclass probability (FSRQ / BLL / NoAGN)
+- **Class imbalance handling**: SMOTENC
+- **Hyperparameter optimization**: Optuna (Bayesian optimization, 410 trials)
+- **Frameworks**: TensorFlow / Keras, scikit-learn
 
-├── README.md
+---
 
+## Results
 
+- **Accuracy**: **87.77%**
+- **Weighted F1-score**: **87.75%**
+- **Stable generalization** across:
+  - Blazar Candidates of Uncertain Type (BCU)
+  - Galactic sources in the **Vela supernova remnant region**
+- Successfully identified **non-extragalactic populations**, confirming robustness beyond training data.
+
+---
+
+## Research Integration
+
+This ML-based classification pipeline and validation workflow directly contributed to the research project:
+
+> **“GeV emission in the region of the Vela supernova remnant: a new view of the shell”**
+
+- Research group led by **Dr. Miguel Araya**
+- Currently **under review** in *Astronomy & Astrophysics (A&A)*
+
+The methodology developed here supports the interpretation of unidentified Fermi-LAT sources and the study of extended gamma-ray emission.
+
+---
+
+## 🗂️ Project Structure
 
