@@ -79,7 +79,7 @@ The methodology developed here supports the interpretation of unidentified Fermi
 
 The repository is organized following a clear separation of concerns, aligned with the CRISP-ML methodology and typical research-grade machine learning workflows.
 
-
+```
 Proyecto-Investigacion-Cientifica-Fisica/
 │
 ├── data/
@@ -119,6 +119,7 @@ Proyecto-Investigacion-Cientifica-Fisica/
 ├── README.md                   # Project documentation and scientific context
 ├── .gitignore                  # Git ignore rules (caches, IDE configs, non-versionable files)
 └── requirements.txt            # Python dependencies for reproducibility
+```
 
 ### Structure Design Notes
 
