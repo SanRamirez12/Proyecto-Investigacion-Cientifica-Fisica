@@ -46,15 +46,6 @@ logs/
 tmp/
 .cache/
 
-# =========================
-# Machine Learning artifacts
-# =========================
-*.h5
-*.ckpt
-*.pth
-*.pt
-*.joblib
-*.pkl
 
 # =========================
 # Data files (adjust if needed)
