@@ -1,1 +1,92 @@
-*.bkp
+# =========================
+# Python cache & artifacts
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# =========================
+# Virtual environments
+# =========================
+.env
+.venv
+venv/
+env/
+ENV/
+
+# =========================
+# Jupyter / IPython
+# =========================
+.ipynb_checkpoints/
+.profile_default/
+ipython_config.py
+
+# =========================
+# IDEs & editors
+# =========================
+.spyproject/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# Build & distribution
+# =========================
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# =========================
+# Logs & runtime files
+# =========================
+*.log
+logs/
+tmp/
+.cache/
+
+# =========================
+# Machine Learning artifacts
+# =========================
+*.h5
+*.ckpt
+*.pth
+*.pt
+*.joblib
+*.pkl
+
+# =========================
+# Data files (adjust if needed)
+# =========================
+data/raw/
+data/interim/
+data/external/
+
+# If you want to keep processed data, comment this:
+# data/processed/
+
+# =========================
+# OS specific
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# LaTeX / PDF artifacts
+# =========================
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+
+# =========================
+# Misc
+# =========================
+.env.*
+
