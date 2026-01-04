@@ -75,5 +75,59 @@ The methodology developed here supports the interpretation of unidentified Fermi
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure
+├── data/ # Input datasets and curated samples
+
+├── src/ # Source code (preprocessing, training, evaluation)
+
+├── plots/ # Figures and diagnostic visualizations
+
+├── README.md # Project documentation
+
+└── .gitignore
+
+---
+
+## Tools & Dependencies
+
+- **Python** 3.10+
+- **Core libraries**:
+  - numpy
+  - pandas
+  - matplotlib
+  - seaborn
+  - scikit-learn
+  - tensorflow / keras
+  - astropy
+  - optuna
+  - imbalanced-learn
+  - livelossplot
+  - joblib
+
+---
+
+## Project Status
+
+ **Completed**  
+ **Research output submitted to peer-reviewed journal**
+
+---
+
+##  Author & Collaboration
+
+**Santiago Ramírez Elizondo**  
+Physics & Computer Systems Engineering  
+Universidad de Costa Rica
+
+In collaboration with:
+- **Dr. Miguel Araya**
+- **Diego Bueso**
+- **Braulio Solano-Rojas**
+
+---
+
+## License
+
+This project is released for academic and research purposes.  
+Please cite appropriately if used in scientific work.
 
