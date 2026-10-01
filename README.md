@@ -1,166 +1,131 @@
 # Gamma-ray Source Classification with Artificial Neural Networks
 
-This repository contains the complete implementation of a machine learning pipeline for the classification of gamma-ray sources detected by the **Fermi Large Area Telescope (Fermi-LAT)**.  
-The project focuses on identifying **Active Galactic Nuclei (AGNs)** using data from the **4FGL-DR4 catalog**, with special emphasis on robust generalization to unlabeled and Galactic source populations.
+Multi-layer perceptron (MLP) that classifies *Fermi*-LAT **4FGL-DR4** point sources into **BLL**, **FSRQ** and **NoAGN**, using only spectral-shape and variability parameters from the catalogue. The model was applied to Blazar Candidates of Uncertain type (BCU) and to unassociated sources in the **Vela supernova remnant** region. Those Vela results are part of a peer-reviewed publication:
+
+> Araya, M., Ramírez, S., Bueso, D. & Solano-Rojas, B. J. (2026).
+> **GeV emission in the region of Vela: A new view of the supernova remnant.**
+> *Astronomy & Astrophysics*, 710, A74. https://doi.org/10.1051/0004-6361/202557331
+
+Undergraduate research project, Escuela de Física, Universidad de Costa Rica (2025).
 
 ---
 
-## Project Overview
+## Key results
 
-The main goal of this project is to **automatically classify gamma-ray sources** into three astrophysically meaningful categories:
+| | Value |
+|---|---|
+| Training set | 3,064 sources (1,490 BLL · 819 FSRQ · 755 NoAGN) |
+| Inputs | 15 catalogue parameters → 17 columns (`SpectrumType` one-hot encoded) |
+| Stratified shuffle CV (10 splits) | Accuracy **85.4 ± 1.4 %** · weighted F1 **0.854 ± 0.014** · per-class AUC > 0.94 |
+| Selected final model (held-out 20 %, n = 613) | Accuracy 87.8 % · weighted F1 0.878 |
+| BCU (n = 1,623) | 828 BLL · 566 FSRQ · 229 NoAGN |
+| Vela region (35 sources, paper) | No source reaches P(BLL) or P(FSRQ) ≥ 0.70 |
 
-- **FSRQ** (Flat Spectrum Radio Quasars)  
-- **BLL** (BL Lacertae objects)  
-- **NoAGN** (non–active galactic nucleus sources)
-
-A **Multi-Layer Perceptron (MLP)** artificial neural network was designed, optimized, and validated to address this task, integrating both astrophysical domain knowledge and modern machine learning practices.
-
-This work was developed as the **final research project for the Physics undergraduate program**, combining expertise from **Physics** and **Computer Systems Engineering**.
-
----
-
-## Scientific Context
-
-Gamma-ray source catalogs such as **4FGL-DR4** contain thousands of detected sources, many of which remain **unassociated or ambiguously classified**.  
-Manual classification is time-consuming and limited by observational constraints, motivating the use of **data-driven classification methods**.
-
-This project contributes a **validated ANN-based methodology** for source classification and uncertainty reduction in large astrophysical catalogs.
+> The cross-validation figure is the most reliable estimate of generalization. The final-model test split was also used for hyperparameter selection (see *Known limitations*).
 
 ---
 
-## Methodology
-
-The project follows the **CRISP-ML (Cross-Industry Standard Process for Machine Learning)** framework, adapted for astrophysical research:
-
-1. **Astrophysical understanding** of gamma-ray catalogs and AGN populations  
-2. **Data engineering**: cleaning, preprocessing, exploratory data analysis (EDA)  
-3. **Feature engineering** based on spectral and variability parameters  
-4. **Model engineering**: ANN design and optimization  
-5. **Evaluation and scientific validation**
-
----
-
-## Model Description
-
-- **Architecture**: Multi-Layer Perceptron (MLP)
-- **Inputs**: 15 physically motivated spectral and variability features from 4FGL-DR4
-- **Output**: Multiclass probability (FSRQ / BLL / NoAGN)
-- **Class imbalance handling**: SMOTENC
-- **Hyperparameter optimization**: Optuna (Bayesian optimization, 410 trials)
-- **Frameworks**: TensorFlow / Keras, scikit-learn
-
----
-
-## Results
-
-- **Accuracy**: **87.77%**
-- **Weighted F1-score**: **87.75%**
-- **Stable generalization** across:
-  - Blazar Candidates of Uncertain Type (BCU)
-  - Galactic sources in the **Vela supernova remnant region**
-- Successfully identified **non-extragalactic populations**, confirming robustness beyond training data.
-
----
-
-## Research Integration
-
-This ML-based classification pipeline and validation workflow directly contributed to the research project:
-
-> **“GeV emission in the region of the Vela supernova remnant: a new view of the shell”**
-
-- Research group led by **Dr. Miguel Araya**
-- Currently **under review** in *Astronomy & Astrophysics (A&A)*
-
-The methodology developed here supports the interpretation of unidentified Fermi-LAT sources and the study of extended gamma-ray emission.
-
----
-
-## Project Structure
-
-The repository is organized following a clear separation of concerns, aligned with the CRISP-ML methodology and typical research-grade machine learning workflows.
+## Pipeline
 
 ```
-Proyecto-Investigacion-Cientifica-Fisica/
-│
-├── data/
-│ ├── raw/ # Original / base data used in the project
-│ ├── hyperparameter studies/ # Outputs from Optuna studies (trials, results, exports)
-│ ├── fold results training/ # Training results per CV fold (metrics, logs, artifacts)
-│ ├── model evaluation/ # Evaluation outputs (reports, metrics, comparisons)
-│ ├── monte carlo results/ # Monte Carlo experiment outputs and summaries
-│ └── post preliminary analysis/ # Additional analysis artifacts after initial experiments
-│
-├── plots/
-│ # Research figures and diagnostics used throughout the project, including:
-│ # - Confusion matrices
-│ # - Learning curves (loss/accuracy history)
-│ # - F1-score / metric distributions
-│ # - Correlation heatmaps (e.g., Pearson)
-│ # - Pairplots / feature relationships
-│ # - Hyperparameter importance plots (Optuna)
-│ # - Weight / model inspection visualizations
-│ # - Other EDA and model evaluation figures
-│
-├── src/
-│ ├── data exploration/ # EDA and preprocessing scripts/utilities
-│ ├── feature engineering/ # Feature selection/encoding and transformations
-│ ├── model development/ # Model design, training, and hyperparameter optimization
-│ ├── model evaluation/ # Evaluation scripts and validation workflows
-│ └── random tests/ # Legacy/experimental scripts and sanity checks
-│
-├── README.md # Project documentation and scientific context
-└── .gitignore # Ignore rules (caches, IDE configs, non-versionable files)
+gll_psc_v35.fit ──► data exploration ──► data/post preliminary analysis/*.parquet
+                                              │
+                ┌─────────────────────────────┼──────────────────────────┐
+                ▼                             ▼                          ▼
+     hyperparameter_optuna.py     model_3classes_pipeline.py   training_final_montecarlo_cv.py
+     (Optuna, 411 trials)          (10-split stratified CV)     (100 runs → best model .h5/.pkl)
+                                                                         │
+                                              ┌──────────────────────────┴──────────┐
+                                              ▼                                     ▼
+                                     bcu_evaluation.py                     vela_evaluation.py
 ```
 
-### Structure Design Notes
+| Step | Script | Output |
+|---|---|---|
+| 1. Read catalogue, relabel classes, one-hot `SpectrumType`, drop NaN/inf rows | `src/data exploration/data_exploration.py` | `data/post preliminary analysis/df_final_*.parquet` |
+| 2. Extract Vela-region sources by name | `src/data exploration/vela_sources_preprocessing.py` | `fuentes_vela*.parquet` |
+| 3. Hyperparameter search (TPE + MedianPruner, weighted-F1 objective) | `src/model development/hyperparameter_optuna.py` | `data/hyperparameter studies/` |
+| 4. Stratified shuffle cross-validation with SMOTENC | `src/model development/model_3classes_pipeline.py` | `data/fold results training/` |
+| 5. Final training (100 runs, metric thresholds, best model kept) | `src/model development/training_final_montecarlo_cv.py` | `data/monte carlo results/` |
+| 6. Apply to BCU / Vela | `src/model evaluation/*.py` | `data/model evaluation/` |
 
-- All folder names are **lowercase and consistent**, avoiding cross-platform issues between Windows and Linux systems.
-- The `src/` directory is structured by **functional responsibility** rather than execution order.
-- Experimental and legacy scripts are isolated under `random tests/` to keep the main pipeline clean.
-- The structure supports **reproducibility**, **paper traceability**, and future extension of the pipeline.
+Run each script from its own folder (scripts use paths relative to their location).
 
----
-
-## Tools & Dependencies
-
-- **Python** 3.10+
-- **Core libraries**:
-  - numpy
-  - pandas
-  - matplotlib
-  - seaborn
-  - scikit-learn
-  - tensorflow / keras
-  - astropy
-  - optuna
-  - imbalanced-learn
-  - livelossplot
-  - joblib
+### Final architecture
+4 hidden layers `[121, 105, 137, 80]` · activations `relu, selu, gelu, selu` · dropout `[0.25, 0.15, 0.10, 0.10]` · softmax output (3) · AdamW (lr = 8.53 × 10⁻⁴) · batch 55 · early stopping (patience 50) · sparse categorical cross-entropy · class imbalance handled with SMOTENC.
 
 ---
 
-## Project Status
+## Data
 
- **Completed**  
- **Research output submitted to peer-reviewed journal**
+| Folder | Contents |
+|---|---|
+| `data/raw/` | `gll_psc_v35.fit` (4FGL-DR4); 4LAC-DR2 and 3PC catalogues used in early exploration |
+| `data/post preliminary analysis/` | Cleaned datasets: full, 3-class training set, BCU, unassociated, Vela variants |
+| `data/hyperparameter studies/` | Pickled Optuna studies and top-N trial tables |
+| `data/fold results training/` | Per-fold models, histories and reports |
+| `data/monte carlo results/` | Final model (`.h5`, `.pkl` with scaler) and metrics CSV |
+| `data/model evaluation/` | Per-source class probabilities for Vela |
+| `plots/` | EDA, learning curves, confusion matrices, Optuna diagnostics |
+
+Class mapping from `CLASS1`: `fsrq`→FSRQ, `bll`→BLL, `bcu`→BCU, `rdg/nlsy1/sey/agn/css/ssrq`→OtroAGN (excluded, 81 sources), empty→unassociated, everything else→NoAGN.
+
+---
+
+## Installation
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install numpy pandas pyarrow astropy scikit-learn imbalanced-learn \
+            tensorflow optuna==4.3.* plotly matplotlib seaborn livelossplot joblib
+```
+
+`optuna==4.3.*` is required to unpickle the stored studies. `numpy<2` is required by `leer_fits()` (uses `ndarray.newbyteorder`).
 
 ---
 
-##  Author & Collaboration
+## Known limitations
 
-**Santiago Ramírez Elizondo**  
-Physics & Computer Systems Engineering  
-Universidad de Costa Rica
-
-In collaboration with:
-- **Dr. Miguel Araya**
-- **Diego Bueso**
-- **Dr. Braulio Solano**
+- The final-model test split (`random_state=42`) is identical to the Optuna validation split, and the best of 100 runs is selected on it, so 87.8 % is optimistic.
+- In the final training, `validation_split=0.2` is applied after SMOTENC without shuffling, so the synthetic samples end up in the validation slice.
+- `src/feature engineering/` is a placeholder (empty).
 
 ---
+
+## Repository structure
+
+```
+data/      raw catalogues, processed datasets and model artefacts
+plots/     figures used in the thesis, presentation and paper
+src/
+  data exploration/     reading, cleaning, EDA, Vela extraction
+  model development/    Optuna search, cross-validation, final training
+  model evaluation/     BCU and Vela inference
+  feature engineering/  (placeholder)
+  random tests/         early prototypes
+```
+
+---
+
+## Authors
+
+**Santiago Ramírez Elizondo**: Physics & Computer Systems Engineering, Universidad de Costa Rica
+
+Advisors and collaborators: Dr. Miguel Araya Arguedas (Escuela de Física, UCR) · MSc. Braulio Solano Rojas (ECCI, UCR) · Diego Bueso (UCR)
+
+## Citation
+
+```bibtex
+@article{Araya2026Vela,
+  author  = {Araya, Miguel and Ram{\'i}rez, Santiago and Bueso, Diego and Solano-Rojas, Braulio J.},
+  title   = {GeV emission in the region of Vela: A new view of the supernova remnant},
+  journal = {Astronomy \& Astrophysics},
+  volume  = {710},
+  pages   = {A74},
+  year    = {2026},
+  doi     = {10.1051/0004-6361/202557331}
+}
+```
 
 ## License
-
-This project is released for academic and research purposes.  
-Please cite appropriately if used in scientific work.
-
+Released for academic and research use. Please cite the paper above if you use this work.
